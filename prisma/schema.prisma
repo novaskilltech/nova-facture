@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Entity {
+  id                String   @id @default(cuid())
+  legalName         String
+  commercialName    String
+  legalForm         String
+  siren             String
+  siret             String?
+  rcs               String?
+  capital           String?
+  address           String
+  postalCode        String
+  city              String
+  phone             String?
+  email             String?
+  website           String?
+  apeCode           String?
+  tvaMention        String
+  logoPath          String?
+  bankName          String
+  bankIban          String
+  bankBic           String
+  bankHolder        String
+  paymentMethods    String
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  invoices          Invoice[]
+}
+
+model Client {
+  id          String    @id @default(cuid())
+  lastName    String
+  firstName   String?
+  company     String?
+  email       String?
+  phone       String?
+  address     String?
+  postalCode  String?
+  city        String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  invoices    Invoice[]
+}
+
+model Invoice {
+  id              String    @id @default(cuid())
+  number          String    @unique
+  date            DateTime
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  description     String
+  quantity        Int       @default(1)
+  amountHT        Float
+  tvaRate         Float     @default(0)
+  tvaAmount       Float     @default(0)
+  totalTTC        Float
+  status          String    @default("draft")
+  paymentMethod   String
+  paymentLink     String?
+  notes           String?
+  entityId        String
+  clientId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  emittedAt       DateTime?
+  entity          Entity    @relation(fields: [entityId], references: [id])
+  client          Client    @relation(fields: [clientId], references: [id])
+}

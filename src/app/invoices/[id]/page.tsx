@@ -1,0 +1,274 @@
+import { requireAuth } from "@/lib/auth"
+import { prisma } from "@/lib/db"
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { InvoicePDFDownloadButton } from "@/components/InvoicePDFDownloadButton"
+import { InvoiceStatusSelector } from "@/components/InvoiceStatusSelector"
+
+export default async function InvoiceDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  await requireAuth()
+  const { id } = await params
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id },
+    include: { entity: true, client: true },
+  })
+
+  if (!invoice) {
+    notFound()
+  }
+
+  const formatPaymentMethod = (method: string) => {
+    const methods: Record<string, string> = {
+      virement: "Virement bancaire",
+      especes: "Espèces",
+      "cb-stripe": "CB via Stripe",
+      "cb-revolut": "CB via Revolut Pro",
+    }
+    return methods[method] || method
+  }
+
+  const statusLabels: Record<string, string> = {
+    draft: "Brouillon",
+    emitted: "Émise",
+    paid: "Payée",
+    late: "En retard",
+    cancelled: "Annulée",
+  }
+
+  const statusColors: Record<string, string> = {
+    draft: "bg-yellow-100 text-yellow-800",
+    emitted: "bg-blue-100 text-blue-800",
+    paid: "bg-green-100 text-green-800",
+    late: "bg-red-100 text-red-800",
+    cancelled: "bg-gray-100 text-gray-800",
+  }
+
+  const pdfInvoice = {
+    number: invoice.number,
+    date: invoice.date.toISOString(),
+    periodStart: invoice.periodStart?.toISOString() || null,
+    periodEnd: invoice.periodEnd?.toISOString() || null,
+    description: invoice.description,
+    quantity: invoice.quantity,
+    amountHT: invoice.amountHT,
+    tvaRate: invoice.tvaRate,
+    tvaAmount: invoice.tvaAmount,
+    totalTTC: invoice.totalTTC,
+    paymentMethod: invoice.paymentMethod,
+    paymentLink: invoice.paymentLink,
+    notes: invoice.notes,
+    entity: invoice.entity,
+    client: invoice.client,
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white border-b px-6 py-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold">Nova Facture</h1>
+        <div className="flex gap-4">
+          <Link href="/dashboard" className="text-blue-600 hover:underline">
+            Tableau de bord
+          </Link>
+          <Link href="/entities" className="text-blue-600 hover:underline">
+            Sociétés
+          </Link>
+          <form action="/api/auth/logout" method="POST">
+            <button type="submit" className="text-red-600 hover:underline">
+              Déconnexion
+            </button>
+          </form>
+        </div>
+      </nav>
+
+      <main className="max-w-4xl mx-auto px-6 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold">Facture {invoice.number}</h2>
+            <p className="text-gray-500">
+              {invoice.entity.commercialName}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <InvoicePDFDownloadButton
+              invoice={pdfInvoice}
+              fileName={`facture-${invoice.number}.pdf`}
+            />
+            {invoice.status === "draft" && (
+              <EmitButton id={invoice.id} />
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center gap-4 mb-6">
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[invoice.status]}`}
+            >
+              {statusLabels[invoice.status]}
+            </span>
+            <span className="text-sm text-gray-500">
+              Créée le {new Date(invoice.createdAt).toLocaleDateString("fr-FR")}
+            </span>
+            {invoice.emittedAt && (
+              <span className="text-sm text-gray-500">
+                Émise le {new Date(invoice.emittedAt).toLocaleDateString("fr-FR")}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <h3 className="font-semibold mb-2 text-sm text-gray-500 uppercase">Émetteur</h3>
+              <p className="font-medium">{invoice.entity.legalName}</p>
+              <p className="text-sm text-gray-600">{invoice.entity.commercialName}</p>
+              <p className="text-sm text-gray-600">{invoice.entity.legalForm}</p>
+              <p className="text-sm text-gray-600">
+                {invoice.entity.address}, {invoice.entity.postalCode} {invoice.entity.city}
+              </p>
+              <p className="text-sm text-gray-600">
+                SIREN {invoice.entity.siren}
+                {invoice.entity.siret && ` - SIRET ${invoice.entity.siret}`}
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2 text-sm text-gray-500 uppercase">Payeur</h3>
+              <p className="font-medium">
+                {invoice.client.firstName
+                  ? `${invoice.client.firstName} ${invoice.client.lastName}`
+                  : invoice.client.lastName}
+              </p>
+              {invoice.client.company && (
+                <p className="text-sm text-gray-600">{invoice.client.company}</p>
+              )}
+              {invoice.client.email && (
+                <p className="text-sm text-gray-600">{invoice.client.email}</p>
+              )}
+              {invoice.client.address && (
+                <p className="text-sm text-gray-600">
+                  {invoice.client.address}
+                  {invoice.client.postalCode && `, ${invoice.client.postalCode}`}
+                  {invoice.client.city && ` ${invoice.client.city}`}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 className="font-semibold mb-4">Détails</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-500">Date de facture:</span>
+              <p className="font-medium">
+                {new Date(invoice.date).toLocaleDateString("fr-FR")}
+              </p>
+            </div>
+            <div>
+              <span className="text-gray-500">Période de séjour:</span>
+              <p className="font-medium">
+                {invoice.periodStart && invoice.periodEnd
+                  ? `Du ${new Date(invoice.periodStart).toLocaleDateString("fr-FR")} au ${new Date(invoice.periodEnd).toLocaleDateString("fr-FR")}`
+                  : "Non spécifiée"}
+              </p>
+            </div>
+            <div>
+              <span className="text-gray-500">Moyen de paiement:</span>
+              <p className="font-medium">{formatPaymentMethod(invoice.paymentMethod)}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Quantité de produits:</span>
+              <p className="font-medium">{invoice.quantity}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Statut:</span>
+              <InvoiceStatusSelector id={invoice.id} currentStatus={invoice.status} />
+            </div>
+          </div>
+
+          <div className="mt-4 p-4 bg-gray-50 rounded-md">
+            <p className="text-sm text-gray-500 mb-1">Description</p>
+            <p>{invoice.description}</p>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <div className="w-64">
+              <div className="flex justify-between text-sm py-1">
+                <span>Total HT</span>
+                <span>{invoice.amountHT.toFixed(2)} €</span>
+              </div>
+              <div className="flex justify-between text-sm py-1 text-gray-500">
+                <span>TVA (0%)</span>
+                <span>0.00 €</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg border-t pt-2">
+                <span>Total à payer</span>
+                <span>{invoice.totalTTC.toFixed(2)} €</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2 italic">
+                {invoice.entity.tvaMention}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {invoice.paymentMethod === "virement" && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h3 className="font-semibold mb-4">Coordonnées bancaires</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-500">Banque:</span>
+                <p className="font-medium">{invoice.entity.bankName}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Titulaire:</span>
+                <p className="font-medium">{invoice.entity.bankHolder}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">IBAN:</span>
+                <p className="font-medium font-mono">{invoice.entity.bankIban}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">BIC:</span>
+                <p className="font-medium font-mono">{invoice.entity.bankBic}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {invoice.notes && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="font-semibold mb-2">Notes internes</h3>
+            <p className="text-sm text-gray-600">{invoice.notes}</p>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
+
+function EmitButton({ id }: { id: string }) {
+  async function emitInvoice() {
+    "use server"
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/invoices/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "emitted" }),
+    })
+  }
+
+  return (
+    <form action={emitInvoice}>
+      <button
+        type="submit"
+        className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+      >
+        Émettre la facture
+      </button>
+    </form>
+  )
+}
