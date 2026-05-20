@@ -46,7 +46,7 @@ export function NewClientForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+        className="w-full rounded-md bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-700 sm:w-auto sm:py-2"
       >
         + Nouveau payeur
       </button>
@@ -54,17 +54,17 @@ export function NewClientForm() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+      <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 shadow-lg sm:p-6">
         <h3 className="text-lg font-semibold mb-4">Nouveau payeur</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input
               type="text"
               placeholder="Nom *"
               value={form.lastName}
               onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-              className="px-3 py-2 border rounded-md"
+              className="w-full px-3 py-2 border rounded-md"
               required
             />
             <input
@@ -72,7 +72,7 @@ export function NewClientForm() {
               placeholder="Prénom"
               value={form.firstName}
               onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-              className="px-3 py-2 border rounded-md"
+              className="w-full px-3 py-2 border rounded-md"
             />
           </div>
           <input
@@ -82,20 +82,20 @@ export function NewClientForm() {
             onChange={(e) => setForm({ ...form, company: e.target.value })}
             className="w-full px-3 py-2 border rounded-md"
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input
               type="email"
               placeholder="Email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="px-3 py-2 border rounded-md"
+              className="w-full px-3 py-2 border rounded-md"
             />
             <input
               type="tel"
               placeholder="Téléphone"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="px-3 py-2 border rounded-md"
+              className="w-full px-3 py-2 border rounded-md"
             />
           </div>
           <input
@@ -105,20 +105,20 @@ export function NewClientForm() {
             onChange={(e) => setForm({ ...form, address: e.target.value })}
             className="w-full px-3 py-2 border rounded-md"
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input
               type="text"
               placeholder="Code postal"
               value={form.postalCode}
               onChange={(e) => setForm({ ...form, postalCode: e.target.value })}
-              className="px-3 py-2 border rounded-md"
+              className="w-full px-3 py-2 border rounded-md"
             />
             <input
               type="text"
               placeholder="Ville"
               value={form.city}
               onChange={(e) => setForm({ ...form, city: e.target.value })}
-              className="px-3 py-2 border rounded-md"
+              className="w-full px-3 py-2 border rounded-md"
             />
           </div>
           <textarea
@@ -128,17 +128,17 @@ export function NewClientForm() {
             className="w-full px-3 py-2 border rounded-md"
             rows={2}
           />
-          <div className="flex gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="flex-1 px-4 py-2 border rounded-md hover:bg-gray-50"
+              className="flex-1 rounded-md border px-4 py-2.5 font-medium hover:bg-gray-50"
             >
               Annuler
             </button>
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
+              className="flex-1 rounded-md bg-blue-600 py-2.5 font-semibold text-white hover:bg-blue-700"
             >
               Créer
             </button>

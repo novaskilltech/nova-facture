@@ -49,7 +49,7 @@ export function InvoiceStatusSelector({
       value={status}
       onChange={(event) => updateStatus(event.target.value)}
       disabled={isPending}
-      className="px-2 py-1 border rounded-md text-sm"
+      className="w-full rounded-md border px-2 py-2 text-sm sm:w-auto sm:py-1"
     >
       {statusOptions.map((option) => (
         <option key={option.value} value={option.value}>

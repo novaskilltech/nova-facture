@@ -74,15 +74,15 @@ export default async function InvoiceDetailPage({
         ]}
       />
 
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">Facture {invoice.number}</h2>
+      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="break-words text-2xl font-bold">Facture {invoice.number}</h2>
             <p className="text-gray-500">
               {invoice.entity.commercialName}
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:flex sm:shrink-0">
             <InvoicePDFDownloadButton
               invoice={pdfInvoice}
               fileName={`facture-${invoice.number}.pdf`}
@@ -93,8 +93,8 @@ export default async function InvoiceDetailPage({
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex items-center gap-4 mb-6">
+        <div className="mb-6 rounded-lg bg-white p-4 shadow sm:p-6">
+          <div className="mb-6 flex flex-wrap items-center gap-3 sm:gap-4">
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[invoice.status]}`}
             >
@@ -110,7 +110,7 @@ export default async function InvoiceDetailPage({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8">
             <div>
               <h3 className="font-semibold mb-2 text-sm text-gray-500 uppercase">Émetteur</h3>
               <p className="font-medium">{invoice.entity.legalName}</p>
@@ -148,9 +148,9 @@ export default async function InvoiceDetailPage({
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="mb-6 rounded-lg bg-white p-4 shadow sm:p-6">
           <h3 className="font-semibold mb-4">Détails</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
               <span className="text-gray-500">Date de facture:</span>
               <p className="font-medium">
@@ -185,16 +185,16 @@ export default async function InvoiceDetailPage({
           </div>
 
           <div className="mt-4 flex justify-end">
-            <div className="w-64">
-              <div className="flex justify-between text-sm py-1">
+            <div className="w-full sm:w-64">
+              <div className="flex justify-between gap-4 py-1 text-sm">
                 <span>Total HT</span>
                 <span>{invoice.amountHT.toFixed(2)} €</span>
               </div>
-              <div className="flex justify-between text-sm py-1 text-gray-500">
+              <div className="flex justify-between gap-4 py-1 text-sm text-gray-500">
                 <span>TVA (0%)</span>
                 <span>0.00 €</span>
               </div>
-              <div className="flex justify-between font-bold text-lg border-t pt-2">
+              <div className="flex justify-between gap-4 border-t pt-2 text-lg font-bold">
                 <span>Total à payer</span>
                 <span>{invoice.totalTTC.toFixed(2)} €</span>
               </div>
@@ -206,9 +206,9 @@ export default async function InvoiceDetailPage({
         </div>
 
         {invoice.paymentMethod === "virement" && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="mb-6 rounded-lg bg-white p-4 shadow sm:p-6">
             <h3 className="font-semibold mb-4">Coordonnées bancaires</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
               <div>
                 <span className="text-gray-500">Banque:</span>
                 <p className="font-medium">{invoice.entity.bankName}</p>
@@ -219,18 +219,18 @@ export default async function InvoiceDetailPage({
               </div>
               <div>
                 <span className="text-gray-500">IBAN:</span>
-                <p className="font-medium font-mono">{invoice.entity.bankIban}</p>
+                <p className="break-all font-mono font-medium">{invoice.entity.bankIban}</p>
               </div>
               <div>
                 <span className="text-gray-500">BIC:</span>
-                <p className="font-medium font-mono">{invoice.entity.bankBic}</p>
+                <p className="break-all font-mono font-medium">{invoice.entity.bankBic}</p>
               </div>
             </div>
           </div>
         )}
 
         {invoice.notes && (
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="rounded-lg bg-white p-4 shadow sm:p-6">
             <h3 className="font-semibold mb-2">Notes internes</h3>
             <p className="text-sm text-gray-600">{invoice.notes}</p>
           </div>
@@ -251,10 +251,10 @@ function EmitButton({ id }: { id: string }) {
   }
 
   return (
-    <form action={emitInvoice}>
+    <form action={emitInvoice} className="w-full sm:w-auto">
       <button
         type="submit"
-        className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+        className="w-full rounded-md bg-green-600 px-4 py-2.5 font-semibold text-white hover:bg-green-700 sm:w-auto sm:py-2"
       >
         Émettre la facture
       </button>

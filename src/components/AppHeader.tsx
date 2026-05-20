@@ -1,3 +1,5 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
 
@@ -53,12 +55,16 @@ export function AppHeader({ links }: { links: AppHeaderLink[] }) {
 
   return (
     <nav className="sticky top-0 z-50 w-full glass-effect transition-premium shadow-premium">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5">
         <Link href="/dashboard" className="transition-premium hover:opacity-90">
-          <BrandLogo iconOnly={false} />
+          <BrandLogo
+            iconOnly={false}
+            titleClassName="text-base font-extrabold text-slate-900 tracking-tight sm:text-lg"
+            subtitleClassName="hidden text-[10px] uppercase tracking-wider text-slate-400 font-bold sm:block"
+          />
         </Link>
         
-        <div className="flex items-center gap-6">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-6">
           <div className="hidden sm:flex items-center gap-1.5 text-sm font-medium">
             {navigationLinks.map((link) => (
               <Link 
@@ -71,11 +77,11 @@ export function AppHeader({ links }: { links: AppHeaderLink[] }) {
             ))}
           </div>
 
-          <div className="flex items-center gap-3 border-l border-slate-200 pl-6">
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-3 sm:gap-3 sm:pl-6">
             <form action="/api/auth/logout" method="POST">
               <button 
                 type="submit" 
-                className="px-3.5 py-1.5 rounded-lg text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50/50 cursor-pointer transition-premium"
+                className="rounded-lg px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50/50 hover:text-rose-700 cursor-pointer transition-premium sm:px-3.5 sm:py-1.5 sm:text-sm"
               >
                 Déconnexion
               </button>
@@ -88,7 +94,19 @@ export function AppHeader({ links }: { links: AppHeaderLink[] }) {
           </div>
         </div>
       </div>
+      <div className="border-t border-slate-200/70 px-4 pb-3 sm:hidden">
+        <div className="flex gap-2 overflow-x-auto pt-3 text-sm font-semibold">
+          {navigationLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="shrink-0 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-slate-700 shadow-premium transition-premium hover:border-slate-300 hover:text-slate-900"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      </div>
     </nav>
   )
 }
-

@@ -153,8 +153,8 @@ export default function NewInvoicePage() {
         ]}
       />
 
-      <main className="max-w-3xl mx-auto px-6 py-8">
-        <h2 className="text-2xl font-bold mb-6">Nouvelle facture</h2>
+      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+        <h2 className="mb-6 text-2xl font-bold">Nouvelle facture</h2>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-6">
@@ -163,9 +163,9 @@ export default function NewInvoicePage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="rounded-lg bg-white p-4 shadow sm:p-6">
             <h3 className="font-semibold mb-4">Entreprise émettrice</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
               {entities.map((e) => (
                 <button
                   key={e.id}
@@ -174,7 +174,7 @@ export default function NewInvoicePage() {
                     setSelectedEntity(e.id)
                     setPaymentMethod("")
                   }}
-                  className={`p-4 border-2 rounded-lg text-left ${
+                  className={`p-4 border-2 rounded-lg text-left transition-premium ${
                     selectedEntity === e.id
                       ? "border-blue-600 bg-blue-50"
                       : "border-gray-200 hover:border-gray-300"
@@ -188,7 +188,7 @@ export default function NewInvoicePage() {
           </div>
 
           {entity && (
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="rounded-lg bg-white p-4 shadow sm:p-6">
               <h3 className="font-semibold mb-4">Payeur</h3>
               <select
                 value={selectedClient}
@@ -207,7 +207,7 @@ export default function NewInvoicePage() {
               <button
                 type="button"
                 onClick={() => setNewClientModal(true)}
-                className="text-blue-600 hover:underline text-sm"
+                className="rounded-md px-1 py-2 text-sm font-semibold text-blue-600 hover:underline"
               >
                 + Nouveau payeur
               </button>
@@ -216,9 +216,9 @@ export default function NewInvoicePage() {
 
           {entity && selectedClient && (
             <>
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-4 shadow sm:p-6">
                 <h3 className="font-semibold mb-4">Détails de la facture</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium mb-1">Numéro</label>
                     <input
@@ -271,9 +271,9 @@ export default function NewInvoicePage() {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-4 shadow sm:p-6">
                 <h3 className="font-semibold mb-4">Montant et paiement</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium mb-1">Quantité de produits</label>
                     <input
@@ -332,24 +332,24 @@ export default function NewInvoicePage() {
                   </div>
                 )}
                 {amountHT && (
-                  <div className="mt-4 p-4 bg-gray-50 rounded-md">
-                    <div className="flex justify-between text-sm">
+                  <div className="mt-4 rounded-md bg-gray-50 p-4">
+                    <div className="flex justify-between gap-4 text-sm">
                       <span>Quantité</span>
                       <span>{quantityValue}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between gap-4 text-sm">
                       <span>Prix unitaire HT</span>
                       <span>{unitPriceHT.toFixed(2)} €</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between gap-4 text-sm">
                       <span>Total HT</span>
                       <span>{totalHT.toFixed(2)} €</span>
                     </div>
-                    <div className="flex justify-between text-sm text-gray-500">
+                    <div className="flex justify-between gap-4 text-sm text-gray-500">
                       <span>TVA (0%)</span>
                       <span>0.00 €</span>
                     </div>
-                    <div className="flex justify-between font-semibold border-t pt-2 mt-2">
+                    <div className="mt-2 flex justify-between gap-4 border-t pt-2 font-semibold">
                       <span>Total à payer</span>
                       <span>{totalHT.toFixed(2)} €</span>
                     </div>
@@ -357,7 +357,7 @@ export default function NewInvoicePage() {
                 )}
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-4 shadow sm:p-6">
                 <h3 className="font-semibold mb-4">Notes internes (facultatif)</h3>
                 <textarea
                   value={notes}
@@ -370,17 +370,17 @@ export default function NewInvoicePage() {
             </>
           )}
 
-          <div className="flex gap-4">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:gap-4">
             <Link
               href="/dashboard"
-              className="flex-1 text-center px-4 py-2 border rounded-md hover:bg-gray-50"
+              className="flex-1 rounded-md border px-4 py-2.5 text-center font-medium hover:bg-gray-50"
             >
               Annuler
             </Link>
             <button
               type="submit"
               disabled={submitting || !selectedEntity || !selectedClient}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 rounded-md bg-blue-600 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {submitting ? "Création..." : "Créer la facture"}
             </button>
@@ -389,17 +389,17 @@ export default function NewInvoicePage() {
       </main>
 
       {newClientModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+          <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 shadow-lg sm:p-6">
             <h3 className="text-lg font-semibold mb-4">Nouveau payeur</h3>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
                   type="text"
                   placeholder="Nom *"
                   value={newClient.lastName}
                   onChange={(e) => setNewClient({ ...newClient, lastName: e.target.value })}
-                  className="px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md"
                   required
                 />
                 <input
@@ -407,7 +407,7 @@ export default function NewInvoicePage() {
                   placeholder="Prénom"
                   value={newClient.firstName}
                   onChange={(e) => setNewClient({ ...newClient, firstName: e.target.value })}
-                  className="px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md"
                 />
               </div>
               <input
@@ -438,28 +438,28 @@ export default function NewInvoicePage() {
                 onChange={(e) => setNewClient({ ...newClient, address: e.target.value })}
                 className="w-full px-3 py-2 border rounded-md"
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
                   type="text"
                   placeholder="Code postal"
                   value={newClient.postalCode}
                   onChange={(e) => setNewClient({ ...newClient, postalCode: e.target.value })}
-                  className="px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md"
                 />
                 <input
                   type="text"
                   placeholder="Ville"
                   value={newClient.city}
                   onChange={(e) => setNewClient({ ...newClient, city: e.target.value })}
-                  className="px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md"
                 />
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={() => setNewClientModal(false)}
-                className="flex-1 px-4 py-2 border rounded-md hover:bg-gray-50"
+                className="flex-1 rounded-md border px-4 py-2.5 font-medium hover:bg-gray-50"
               >
                 Annuler
               </button>
@@ -467,7 +467,7 @@ export default function NewInvoicePage() {
                 type="button"
                 onClick={handleCreateClient}
                 disabled={!newClient.lastName}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="flex-1 rounded-md bg-blue-600 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 Créer
               </button>

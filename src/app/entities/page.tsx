@@ -20,7 +20,7 @@ export default async function EntitiesPage() {
         ]}
       />
 
-      <main className="max-w-5xl mx-auto px-6 py-8">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold">Sociétés</h2>
@@ -30,8 +30,9 @@ export default async function EntitiesPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow">
-          <table className="w-full">
+        <div className="hidden overflow-hidden rounded-lg bg-white shadow md:block">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b text-left text-sm text-gray-500">
                 <th className="p-4">Société</th>
@@ -60,6 +61,39 @@ export default async function EntitiesPage() {
               ))}
             </tbody>
           </table>
+          </div>
+        </div>
+
+        <div className="space-y-3 md:hidden">
+          {entities.map((entity) => (
+            <div key={entity.id} className="rounded-lg bg-white p-4 shadow">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900">{entity.commercialName}</p>
+                  <p className="text-sm text-gray-500">{entity.legalName}</p>
+                </div>
+                <EditEntityRibForm entity={entity} />
+              </div>
+              <dl className="mt-4 space-y-3 text-sm">
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-wide text-gray-400">Banque</dt>
+                  <dd className="font-medium text-gray-700">{entity.bankName}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-wide text-gray-400">Titulaire</dt>
+                  <dd className="font-medium text-gray-700">{entity.bankHolder}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-wide text-gray-400">IBAN</dt>
+                  <dd className="break-all font-mono text-gray-700">{entity.bankIban}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-wide text-gray-400">BIC</dt>
+                  <dd className="break-all font-mono text-gray-700">{entity.bankBic}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
         </div>
       </main>
     </div>

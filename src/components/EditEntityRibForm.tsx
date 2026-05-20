@@ -96,7 +96,7 @@ export function EditEntityRibForm({ entity }: EditEntityRibFormProps) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="px-4 py-2 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-50 rounded-xl transition-premium cursor-pointer inline-flex items-center gap-1.5"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-blue-50/50 px-3 py-2 text-xs font-bold text-blue-600 transition-premium hover:bg-blue-50 hover:text-blue-700 cursor-pointer sm:px-4"
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -107,10 +107,10 @@ export function EditEntityRibForm({ entity }: EditEntityRibFormProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 px-4 transition-all duration-300">
-      <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-premium w-full max-w-lg transition-all transform scale-100">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Modifier les Coordonnées Bancaires</h3>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 px-4 py-4 backdrop-blur-sm transition-all duration-300 sm:items-center">
+      <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-100 bg-white p-4 shadow-premium transition-all transform scale-100 sm:p-8">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <h3 className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">Modifier les Coordonnées Bancaires</h3>
           <button 
             type="button" 
             onClick={() => setOpen(false)}
@@ -152,7 +152,7 @@ export function EditEntityRibForm({ entity }: EditEntityRibFormProps) {
             />
           </div>
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="mb-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Numéro IBAN</label>
               {form.bankIban && (
                 <span className={`text-[10px] font-bold ${isIbanValid ? 'text-emerald-600' : 'text-rose-500'}`}>
@@ -170,7 +170,7 @@ export function EditEntityRibForm({ entity }: EditEntityRibFormProps) {
             />
           </div>
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="mb-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Code BIC / SWIFT</label>
               {form.bankBic && (
                 <span className={`text-[10px] font-bold ${isBicValid ? 'text-emerald-600' : 'text-rose-500'}`}>
@@ -187,7 +187,7 @@ export function EditEntityRibForm({ entity }: EditEntityRibFormProps) {
               required
             />
           </div>
-          <div className="flex gap-4 pt-4">
+          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:gap-4">
             <button
               type="button"
               onClick={() => {
@@ -217,4 +217,3 @@ export function EditEntityRibForm({ entity }: EditEntityRibFormProps) {
     </div>
   )
 }
-

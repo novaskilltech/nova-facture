@@ -21,7 +21,7 @@ export function InvoicePDFDownloadButton({
     <PDFDownloadLink
       document={<InvoicePDF invoice={invoice} logoSrc={logoSrc} />}
       fileName={fileName}
-      className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+      className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-center font-semibold text-white hover:bg-blue-700 sm:w-auto sm:py-2"
     >
       {({ loading }) => (loading ? "Génération..." : "Télécharger PDF")}
     </PDFDownloadLink>
