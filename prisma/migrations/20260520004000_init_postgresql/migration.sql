@@ -1,17 +1,19 @@
 -- CreateTable
 CREATE TABLE "User" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'admin',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Entity" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "legalName" TEXT NOT NULL,
     "commercialName" TEXT NOT NULL,
     "legalForm" TEXT NOT NULL,
@@ -34,13 +36,15 @@ CREATE TABLE "Entity" (
     "bankHolder" TEXT NOT NULL,
     "paymentMethods" TEXT NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Entity_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Client" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "firstName" TEXT,
     "company" TEXT,
@@ -50,33 +54,36 @@ CREATE TABLE "Client" (
     "postalCode" TEXT,
     "city" TEXT,
     "notes" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Client_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Invoice" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "number" TEXT NOT NULL,
-    "date" DATETIME NOT NULL,
-    "periodStart" DATETIME,
-    "periodEnd" DATETIME,
+    "date" TIMESTAMP(3) NOT NULL,
+    "periodStart" TIMESTAMP(3),
+    "periodEnd" TIMESTAMP(3),
     "description" TEXT NOT NULL,
-    "amountHT" REAL NOT NULL,
-    "tvaRate" REAL NOT NULL DEFAULT 0,
-    "tvaAmount" REAL NOT NULL DEFAULT 0,
-    "totalTTC" REAL NOT NULL,
+    "quantity" INTEGER NOT NULL DEFAULT 1,
+    "amountHT" DOUBLE PRECISION NOT NULL,
+    "tvaRate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "tvaAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "totalTTC" DOUBLE PRECISION NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'draft',
     "paymentMethod" TEXT NOT NULL,
     "paymentLink" TEXT,
     "notes" TEXT,
     "entityId" TEXT NOT NULL,
     "clientId" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    "emittedAt" DATETIME,
-    CONSTRAINT "Invoice_entityId_fkey" FOREIGN KEY ("entityId") REFERENCES "Entity" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Invoice_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "emittedAt" TIMESTAMP(3),
+
+    CONSTRAINT "Invoice_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -84,3 +91,9 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Invoice_number_key" ON "Invoice"("number");
+
+-- AddForeignKey
+ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_entityId_fkey" FOREIGN KEY ("entityId") REFERENCES "Entity"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

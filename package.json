@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx src/lib/seed.ts",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "tsx src/lib/seed.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
