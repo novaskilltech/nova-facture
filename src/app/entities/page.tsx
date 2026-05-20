@@ -1,7 +1,7 @@
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { EditEntityRibForm } from "@/components/EditEntityRibForm"
-import Link from "next/link"
+import { AppHeader } from "@/components/AppHeader"
 
 export default async function EntitiesPage() {
   await requireAuth()
@@ -13,25 +13,12 @@ export default async function EntitiesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Nova Facture</h1>
-        <div className="flex gap-4">
-          <Link href="/dashboard" className="text-blue-600 hover:underline">
-            Tableau de bord
-          </Link>
-          <Link href="/invoices/new" className="text-blue-600 hover:underline">
-            Nouvelle facture
-          </Link>
-          <Link href="/clients" className="text-blue-600 hover:underline">
-            Payeurs
-          </Link>
-          <form action="/api/auth/logout" method="POST">
-            <button type="submit" className="text-red-600 hover:underline">
-              Déconnexion
-            </button>
-          </form>
-        </div>
-      </nav>
+      <AppHeader
+        links={[
+          { href: "/invoices/new", label: "Nouvelle facture" },
+          { href: "/clients", label: "Payeurs" },
+        ]}
+      />
 
       <main className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">

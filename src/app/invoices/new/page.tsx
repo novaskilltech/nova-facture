@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { AppHeader } from "@/components/AppHeader"
 
 interface Entity {
   id: string
@@ -146,22 +147,11 @@ export default function NewInvoicePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Nova Facture</h1>
-        <div className="flex gap-4">
-          <Link href="/dashboard" className="text-blue-600 hover:underline">
-            Tableau de bord
-          </Link>
-          <Link href="/entities" className="text-blue-600 hover:underline">
-            Sociétés
-          </Link>
-          <form action="/api/auth/logout" method="POST">
-            <button type="submit" className="text-red-600 hover:underline">
-              Déconnexion
-            </button>
-          </form>
-        </div>
-      </nav>
+      <AppHeader
+        links={[
+          { href: "/entities", label: "Sociétés" },
+        ]}
+      />
 
       <main className="max-w-3xl mx-auto px-6 py-8">
         <h2 className="text-2xl font-bold mb-6">Nouvelle facture</h2>

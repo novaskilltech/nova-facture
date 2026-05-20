@@ -1,9 +1,21 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Outfit, Geist_Mono } from "next/font/google"
 import "./globals.css"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const appTitle = "Omra Facturation"
+const appDescription = "Application de facturation Omrayanair / La Conciergerie / Horizon Solutions"
+const resolvedSiteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000")
+
+const siteUrl = new URL(resolvedSiteUrl)
+
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
 })
 
@@ -13,8 +25,26 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Nova Facture - Gestion de facturation",
-  description: "Application de facturation Omrayanair / La Conciergerie / Horizon Solutions",
+  metadataBase: siteUrl,
+  title: `${appTitle} - Gestion de facturation`,
+  description: appDescription,
+  openGraph: {
+    title: appTitle,
+    description: appDescription,
+    type: "website",
+    locale: "fr_FR",
+    siteName: appTitle,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: appTitle,
+    description: appDescription,
+  },
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+    shortcut: "/icon.png",
+  },
 }
 
 export default function RootLayout({
@@ -24,9 +54,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${outfit.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>
   )
 }
+

@@ -21,7 +21,9 @@ export async function POST(request: Request) {
     await setSession(user.id)
 
     return response
-  } catch {
+  } catch (error) {
+    console.error("Erreur login API :", error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
+
