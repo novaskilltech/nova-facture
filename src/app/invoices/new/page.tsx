@@ -65,14 +65,27 @@ export default function NewInvoicePage() {
     Promise.all([
       fetch("/api/entities").then((r) => r.json()),
       fetch("/api/clients").then((r) => r.json()),
-      fetch("/api/invoices/generate-number").then((r) => r.json()),
-    ]).then(([entitiesData, clientsData, numberData]) => {
+    ]).then(([entitiesData, clientsData]) => {
       setEntities(entitiesData)
       setClients(clientsData)
-      setInvoiceNumber(numberData.number)
       setLoading(false)
     })
   }, [])
+
+  useEffect(() => {
+    if (!selectedEntity) return
+
+    fetch(`/api/invoices/generate-number?entityId=${encodeURIComponent(selectedEntity)}`)
+      .then((response) => response.json())
+      .then((numberData) => {
+        if (numberData.number) {
+          setInvoiceNumber(numberData.number)
+        }
+      })
+      .catch(() => {
+        setError("Erreur lors de la génération du numéro de facture")
+      })
+  }, [selectedEntity])
 
   const entity = entities.find((e) => e.id === selectedEntity)
   const availablePaymentMethods = entity
@@ -173,6 +186,7 @@ export default function NewInvoicePage() {
                   onClick={() => {
                     setSelectedEntity(e.id)
                     setPaymentMethod("")
+                    setInvoiceNumber("")
                   }}
                   className={`p-4 border-2 rounded-lg text-left transition-premium ${
                     selectedEntity === e.id
