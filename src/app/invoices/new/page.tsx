@@ -45,9 +45,23 @@ const roomTypes = [
   { value: "quintuple", label: "Quintuple", supplement: 0 },
 ]
 
+const breakfastPricePerDay = 10
+
 function formatStayDate(date: string) {
   if (!date) return ""
   return new Date(`${date}T00:00:00`).toLocaleDateString("fr-FR")
+}
+
+function calculateStayDays(periodStart: string, periodEnd: string) {
+  if (!periodStart || !periodEnd) return 0
+
+  const startDate = new Date(`${periodStart}T00:00:00`)
+  const endDate = new Date(`${periodEnd}T00:00:00`)
+  const durationInMs = endDate.getTime() - startDate.getTime()
+
+  if (durationInMs <= 0) return 0
+
+  return Math.ceil(durationInMs / (1000 * 60 * 60 * 24))
 }
 
 function buildProductDescription({
@@ -73,13 +87,18 @@ function buildProductDescription({
   const room = roomTypes.find((type) => type.value === roomType)
   const roomLabel = room?.label || roomType
   const roomSupplement = room?.supplement || 0
+  const stayDays = calculateStayDays(periodStart, periodEnd)
+  const breakfastSupplement = includeBreakfast ? stayDays * breakfastPricePerDay : 0
+  const breakfastLabel = includeBreakfast
+    ? `inclus (${stayDays} jour${stayDays > 1 ? "s" : ""} x ${breakfastPricePerDay.toFixed(2)} € = ${breakfastSupplement.toFixed(2)} €)`
+    : "non inclus"
 
   return [
     `Prestations de services - accompagnement logistique ${stayPeriod}`,
     `Visa: ${includeVisa ? "avec visa" : "sans visa"}`,
     `Hébergement: chambre ${roomLabel}`,
     `Supplément chambre: +${roomSupplement.toFixed(2)} €`,
-    `Petit déjeuner: ${includeBreakfast ? "inclus" : "non inclus"}`,
+    `Petit déjeuner: ${breakfastLabel}`,
   ].join("\n")
 }
 
@@ -147,9 +166,11 @@ export default function NewInvoicePage() {
     includeBreakfast,
   })
   const roomSupplement = roomTypes.find((type) => type.value === roomType)?.supplement || 0
+  const stayDays = calculateStayDays(periodStart, periodEnd)
+  const breakfastSupplement = includeBreakfast ? stayDays * breakfastPricePerDay : 0
   const quantityValue = Math.max(1, parseInt(quantity || "1", 10) || 1)
   const baseUnitPriceHT = parseFloat(amountHT || "0") || 0
-  const unitPriceHT = baseUnitPriceHT + roomSupplement
+  const unitPriceHT = baseUnitPriceHT + roomSupplement + breakfastSupplement
   const totalHT = quantityValue * unitPriceHT
 
   async function handleCreateClient() {
@@ -362,7 +383,7 @@ export default function NewInvoicePage() {
                         onChange={(e) => setIncludeBreakfast(e.target.checked)}
                         className="h-4 w-4 rounded border-gray-300"
                       />
-                      Petit déjeuner
+                      Petit déjeuner (+{breakfastPricePerDay.toFixed(2)} €/jour)
                     </label>
                   </div>
                 </div>
@@ -451,6 +472,10 @@ export default function NewInvoicePage() {
                     <div className="flex justify-between gap-4 text-sm">
                       <span>Supplément chambre</span>
                       <span>+{roomSupplement.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between gap-4 text-sm">
+                      <span>Petit déjeuner ({stayDays} jour{stayDays > 1 ? "s" : ""})</span>
+                      <span>+{breakfastSupplement.toFixed(2)} €</span>
                     </div>
                     <div className="flex justify-between gap-4 text-sm">
                       <span>Prix unitaire HT total</span>
