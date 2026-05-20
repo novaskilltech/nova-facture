@@ -38,11 +38,11 @@ interface Client {
 }
 
 const roomTypes = [
-  { value: "single", label: "Single" },
-  { value: "double", label: "Double" },
-  { value: "triple", label: "Triple" },
-  { value: "quad", label: "Quad" },
-  { value: "quintuple", label: "Quintuple" },
+  { value: "single", label: "Single", supplement: 600 },
+  { value: "double", label: "Double", supplement: 200 },
+  { value: "triple", label: "Triple", supplement: 100 },
+  { value: "quad", label: "Quad", supplement: 0 },
+  { value: "quintuple", label: "Quintuple", supplement: 0 },
 ]
 
 function formatStayDate(date: string) {
@@ -70,12 +70,15 @@ function buildProductDescription({
       : periodEnd
         ? `jusqu'au ${formatStayDate(periodEnd)}`
         : "dates de séjour à préciser"
-  const roomLabel = roomTypes.find((type) => type.value === roomType)?.label || roomType
+  const room = roomTypes.find((type) => type.value === roomType)
+  const roomLabel = room?.label || roomType
+  const roomSupplement = room?.supplement || 0
 
   return [
     `Prestations de services - accompagnement logistique ${stayPeriod}`,
     `Visa: ${includeVisa ? "avec visa" : "sans visa"}`,
     `Hébergement: chambre ${roomLabel}`,
+    `Supplément chambre: +${roomSupplement.toFixed(2)} €`,
     `Petit déjeuner: ${includeBreakfast ? "inclus" : "non inclus"}`,
   ].join("\n")
 }
@@ -143,8 +146,10 @@ export default function NewInvoicePage() {
     roomType,
     includeBreakfast,
   })
+  const roomSupplement = roomTypes.find((type) => type.value === roomType)?.supplement || 0
   const quantityValue = Math.max(1, parseInt(quantity || "1", 10) || 1)
-  const unitPriceHT = parseFloat(amountHT || "0") || 0
+  const baseUnitPriceHT = parseFloat(amountHT || "0") || 0
+  const unitPriceHT = baseUnitPriceHT + roomSupplement
   const totalHT = quantityValue * unitPriceHT
 
   async function handleCreateClient() {
@@ -182,7 +187,7 @@ export default function NewInvoicePage() {
           periodEnd: periodEnd || null,
           description,
           quantity: parseInt(quantity, 10),
-          amountHT: parseFloat(amountHT),
+          amountHT: unitPriceHT,
           paymentMethod,
           paymentLink: paymentLink || null,
           notes: notes || null,
@@ -345,7 +350,7 @@ export default function NewInvoicePage() {
                       >
                         {roomTypes.map((type) => (
                           <option key={type.value} value={type.value}>
-                            {type.label}
+                            {type.label} (+{type.supplement.toFixed(2)} €)
                           </option>
                         ))}
                       </select>
@@ -390,7 +395,7 @@ export default function NewInvoicePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Prix unitaire HT (€)</label>
+                    <label className="block text-sm font-medium mb-1">Prix unitaire HT hors chambre (€)</label>
                     <input
                       type="number"
                       step="0.01"
@@ -440,7 +445,15 @@ export default function NewInvoicePage() {
                       <span>{quantityValue}</span>
                     </div>
                     <div className="flex justify-between gap-4 text-sm">
-                      <span>Prix unitaire HT</span>
+                      <span>Prix unitaire HT hors chambre</span>
+                      <span>{baseUnitPriceHT.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between gap-4 text-sm">
+                      <span>Supplément chambre</span>
+                      <span>+{roomSupplement.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between gap-4 text-sm">
+                      <span>Prix unitaire HT total</span>
                       <span>{unitPriceHT.toFixed(2)} €</span>
                     </div>
                     <div className="flex justify-between gap-4 text-sm">
