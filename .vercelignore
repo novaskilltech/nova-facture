@@ -1,0 +1,10 @@
+.env
+.env*
+.next
+node_modules
+dev.db
+prisma/dev.db
+*.db
+*.sqlite
+*.sqlite3
+*.tsbuildinfo
