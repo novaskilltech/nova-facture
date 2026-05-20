@@ -37,6 +37,49 @@ interface Client {
   city?: string | null
 }
 
+const roomTypes = [
+  { value: "single", label: "Single" },
+  { value: "double", label: "Double" },
+  { value: "triple", label: "Triple" },
+  { value: "quad", label: "Quad" },
+  { value: "quintuple", label: "Quintuple" },
+]
+
+function formatStayDate(date: string) {
+  if (!date) return ""
+  return new Date(`${date}T00:00:00`).toLocaleDateString("fr-FR")
+}
+
+function buildProductDescription({
+  periodStart,
+  periodEnd,
+  includeVisa,
+  roomType,
+  includeBreakfast,
+}: {
+  periodStart: string
+  periodEnd: string
+  includeVisa: boolean
+  roomType: string
+  includeBreakfast: boolean
+}) {
+  const stayPeriod = periodStart && periodEnd
+    ? `du ${formatStayDate(periodStart)} au ${formatStayDate(periodEnd)}`
+    : periodStart
+      ? `à partir du ${formatStayDate(periodStart)}`
+      : periodEnd
+        ? `jusqu'au ${formatStayDate(periodEnd)}`
+        : "dates de séjour à préciser"
+  const roomLabel = roomTypes.find((type) => type.value === roomType)?.label || roomType
+
+  return [
+    `Prestations de services - accompagnement logistique ${stayPeriod}`,
+    `Visa: ${includeVisa ? "avec visa" : "sans visa"}`,
+    `Hébergement: chambre ${roomLabel}`,
+    `Petit déjeuner: ${includeBreakfast ? "inclus" : "non inclus"}`,
+  ].join("\n")
+}
+
 export default function NewInvoicePage() {
   const router = useRouter()
   const [entities, setEntities] = useState<Entity[]>([])
@@ -54,7 +97,9 @@ export default function NewInvoicePage() {
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0])
   const [periodStart, setPeriodStart] = useState("")
   const [periodEnd, setPeriodEnd] = useState("")
-  const [description, setDescription] = useState("")
+  const [includeVisa, setIncludeVisa] = useState(false)
+  const [roomType, setRoomType] = useState("double")
+  const [includeBreakfast, setIncludeBreakfast] = useState(true)
   const [quantity, setQuantity] = useState("1")
   const [amountHT, setAmountHT] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("")
@@ -91,6 +136,13 @@ export default function NewInvoicePage() {
   const availablePaymentMethods = entity
     ? entity.paymentMethods.split(",")
     : []
+  const description = buildProductDescription({
+    periodStart,
+    periodEnd,
+    includeVisa,
+    roomType,
+    includeBreakfast,
+  })
   const quantityValue = Math.max(1, parseInt(quantity || "1", 10) || 1)
   const unitPriceHT = parseFloat(amountHT || "0") || 0
   const totalHT = quantityValue * unitPriceHT
@@ -273,14 +325,50 @@ export default function NewInvoicePage() {
                   </div>
                 </div>
                 <div className="mt-4">
+                  <h4 className="mb-3 text-sm font-semibold text-slate-900">Produits inclus</h4>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <label className="flex min-h-11 items-center gap-3 rounded-md border border-gray-200 px-3 py-2 text-sm font-medium">
+                      <input
+                        type="checkbox"
+                        checked={includeVisa}
+                        onChange={(e) => setIncludeVisa(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      Visa
+                    </label>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Type de chambre</label>
+                      <select
+                        value={roomType}
+                        onChange={(e) => setRoomType(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-md"
+                      >
+                        {roomTypes.map((type) => (
+                          <option key={type.value} value={type.value}>
+                            {type.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <label className="flex min-h-11 items-center gap-3 rounded-md border border-gray-200 px-3 py-2 text-sm font-medium sm:mt-6">
+                      <input
+                        type="checkbox"
+                        checked={includeBreakfast}
+                        onChange={(e) => setIncludeBreakfast(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      Petit déjeuner
+                    </label>
+                  </div>
+                </div>
+                <div className="mt-4">
                   <label className="block text-sm font-medium mb-1">Description du package</label>
                   <textarea
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md"
-                    rows={3}
+                    readOnly
+                    className="w-full px-3 py-2 border rounded-md bg-slate-50 text-slate-700"
+                    rows={5}
                     required
-                    placeholder="Prestation de services - Conciergerie..."
                   />
                 </div>
               </div>
