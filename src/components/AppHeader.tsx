@@ -25,20 +25,15 @@ export function BrandLogo({
 }: BrandLogoProps) {
   return (
     <div className={`flex items-center gap-3 ${centered ? "justify-center text-center" : ""}`}>
-      <div className="relative flex items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 p-2 shadow-md shadow-blue-500/10">
+      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5 sm:h-14 sm:w-14">
         <Image
-          src="/omra-facturation-logo.png"
-          alt="Logo Omra"
-          width={size}
-          height={size}
-          className="h-7 w-7 object-contain brightness-0 invert"
+          src="/omra-facturation-header-logo.png"
+          alt="Logo Omra Facturation"
+          width={size * 3}
+          height={size * 3}
+          className="h-full w-full translate-y-3 scale-[2.85] object-contain object-center"
           priority
-          onError={(e) => {
-            // Remplacement vectoriel élégant en cas d'erreur de chargement d'image
-            e.currentTarget.style.display = 'none';
-          }}
         />
-        <span className="font-extrabold text-white text-sm tracking-tighter">OF</span>
       </div>
       {!iconOnly && (
         <div className="leading-tight">
