@@ -45,6 +45,7 @@ const roomTypes = [
   { value: "quintuple", label: "Quintuple", supplement: 0 },
 ]
 
+const departureAirports = ["Paris", "Marseille", "Lyon", "Bruxelles"]
 const breakfastPricePerDay = 10
 
 function formatStayDate(date: string) {
@@ -67,12 +68,14 @@ function calculateStayDays(periodStart: string, periodEnd: string) {
 function buildProductDescription({
   periodStart,
   periodEnd,
+  departureAirport,
   includeVisa,
   roomType,
   includeBreakfast,
 }: {
   periodStart: string
   periodEnd: string
+  departureAirport: string
   includeVisa: boolean
   roomType: string
   includeBreakfast: boolean
@@ -95,6 +98,7 @@ function buildProductDescription({
 
   return [
     `Prestations de services - accompagnement logistique ${stayPeriod}`,
+    `Aéroport de départ: ${departureAirport}`,
     `Visa: ${includeVisa ? "avec visa" : "sans visa"}`,
     `Hébergement: chambre ${roomLabel}`,
     `Supplément chambre: +${roomSupplement.toFixed(2)} €`,
@@ -119,6 +123,7 @@ export default function NewInvoicePage() {
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0])
   const [periodStart, setPeriodStart] = useState("")
   const [periodEnd, setPeriodEnd] = useState("")
+  const [departureAirport, setDepartureAirport] = useState("Paris")
   const [includeVisa, setIncludeVisa] = useState(false)
   const [roomType, setRoomType] = useState("double")
   const [includeBreakfast, setIncludeBreakfast] = useState(true)
@@ -161,6 +166,7 @@ export default function NewInvoicePage() {
   const description = buildProductDescription({
     periodStart,
     periodEnd,
+    departureAirport,
     includeVisa,
     roomType,
     includeBreakfast,
@@ -349,6 +355,21 @@ export default function NewInvoicePage() {
                       className="w-full px-3 py-2 border rounded-md"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Aéroport de départ</label>
+                    <select
+                      value={departureAirport}
+                      onChange={(e) => setDepartureAirport(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    >
+                      {departureAirports.map((airport) => (
+                        <option key={airport} value={airport}>
+                          {airport}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div className="mt-4">
                   <h4 className="mb-3 text-sm font-semibold text-slate-900">Produits inclus</h4>
@@ -393,7 +414,7 @@ export default function NewInvoicePage() {
                     value={description}
                     readOnly
                     className="w-full px-3 py-2 border rounded-md bg-slate-50 text-slate-700"
-                    rows={5}
+                    rows={6}
                     required
                   />
                 </div>

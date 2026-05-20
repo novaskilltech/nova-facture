@@ -16,9 +16,14 @@ Font.register({
   ],
 })
 
+const termsNotice =
+  "Le paiement de cette facture ou d'une partie de la facture vaut consentement à nos conditions générales de vente. Aucune annulation ou remboursement n'est autorisé."
+
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    paddingTop: 40,
+    paddingHorizontal: 40,
+    paddingBottom: 70,
     fontSize: 10,
     fontFamily: "Helvetica",
     color: "#1a1a1a",
@@ -156,7 +161,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     position: "absolute",
-    bottom: 30,
+    bottom: 24,
     left: 40,
     right: 40,
     textAlign: "center",
@@ -164,6 +169,11 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     borderTop: "1px solid #e5e7eb",
     paddingTop: 10,
+  },
+  footerNotice: {
+    marginTop: 4,
+    fontSize: 7,
+    color: "#4b5563",
   },
   tvaMention: {
     fontSize: 9,
@@ -381,6 +391,10 @@ export function InvoicePDF({ invoice, logoSrc }: InvoicePDFProps) {
           <Text>
             {entity.address}, {entity.postalCode} {entity.city}
           </Text>
+          <Text style={styles.footerNotice}>
+            Nos conditions générales de vente sont disponibles sur le site omrayanair.com.
+          </Text>
+          <Text style={styles.footerNotice}>{termsNotice}</Text>
         </View>
       </Page>
     </Document>

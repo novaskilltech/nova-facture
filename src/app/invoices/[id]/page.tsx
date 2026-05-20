@@ -230,11 +230,20 @@ export default async function InvoiceDetailPage({
         )}
 
         {invoice.notes && (
-          <div className="rounded-lg bg-white p-4 shadow sm:p-6">
+          <div className="mb-6 rounded-lg bg-white p-4 shadow sm:p-6">
             <h3 className="font-semibold mb-2">Notes internes</h3>
             <p className="text-sm text-gray-600">{invoice.notes}</p>
           </div>
         )}
+
+        <div className="rounded-lg bg-white p-4 text-xs leading-relaxed text-gray-600 shadow sm:p-6">
+          <p>
+            Nos conditions générales de vente sont disponibles sur le site omrayanair.com.
+          </p>
+          <p className="mt-2">
+            Le paiement de cette facture ou d&apos;une partie de la facture vaut consentement à nos conditions générales de vente. Aucune annulation ou remboursement n&apos;est autorisé.
+          </p>
+        </div>
       </main>
     </div>
   )
