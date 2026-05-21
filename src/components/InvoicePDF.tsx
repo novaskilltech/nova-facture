@@ -17,7 +17,11 @@ Font.register({
 })
 
 const termsNotice =
-  "Le paiement de cette facture ou d'une partie de la facture vaut consentement à nos conditions générales de vente. Aucune annulation ou remboursement n'est autorisé."
+  "Le règlement total ou partiel de la présente facture emporte acceptation pleine et entière de nos conditions générales de vente. Conformément à ces conditions, aucune annulation ni aucun remboursement ne pourra être accordé après paiement total ou partiel de la facture."
+const termsAvailability =
+  "Nos conditions générales de vente sont consultables sur le site omrayanair.com."
+const vatExemptionNotice =
+  "TVA non applicable, conformément à l'article 293 B du Code général des impôts (CGI), l'entreprise bénéficiant du régime de la franchise en base de TVA."
 
 const styles = StyleSheet.create({
   page: {
@@ -391,9 +395,8 @@ export function InvoicePDF({ invoice, logoSrc }: InvoicePDFProps) {
           <Text>
             {entity.address}, {entity.postalCode} {entity.city}
           </Text>
-          <Text style={styles.footerNotice}>
-            Nos conditions générales de vente sont disponibles sur le site omrayanair.com.
-          </Text>
+          <Text style={styles.footerNotice}>{vatExemptionNotice}</Text>
+          <Text style={styles.footerNotice}>{termsAvailability}</Text>
           <Text style={styles.footerNotice}>{termsNotice}</Text>
         </View>
       </Page>

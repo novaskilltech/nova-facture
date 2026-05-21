@@ -238,10 +238,13 @@ export default async function InvoiceDetailPage({
 
         <div className="rounded-lg bg-white p-4 text-xs leading-relaxed text-gray-600 shadow sm:p-6">
           <p>
-            Nos conditions générales de vente sont disponibles sur le site omrayanair.com.
+            TVA non applicable, conformément à l&apos;article 293 B du Code général des impôts (CGI), l&apos;entreprise bénéficiant du régime de la franchise en base de TVA.
           </p>
           <p className="mt-2">
-            Le paiement de cette facture ou d&apos;une partie de la facture vaut consentement à nos conditions générales de vente. Aucune annulation ou remboursement n&apos;est autorisé.
+            Nos conditions générales de vente sont consultables sur le site omrayanair.com.
+          </p>
+          <p className="mt-2">
+            Le règlement total ou partiel de la présente facture emporte acceptation pleine et entière de nos conditions générales de vente. Conformément à ces conditions, aucune annulation ni aucun remboursement ne pourra être accordé après paiement total ou partiel de la facture.
           </p>
         </div>
       </main>
