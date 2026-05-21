@@ -2,10 +2,13 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
 const SESSION_COOKIE = "nova-facture-session"
-const DEFAULT_SECRET = "super-secret-nova-facture-key-2026-secure-default"
 
 function getSecretKey(): string {
-  return process.env.JWT_SECRET || DEFAULT_SECRET
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error("CRITICAL CONFIGURATION ERROR: JWT_SECRET environment variable is missing!")
+  }
+  return secret
 }
 
 // Encodeur de texte pour l'utilisation Web Crypto API

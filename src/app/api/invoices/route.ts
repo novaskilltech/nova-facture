@@ -1,23 +1,31 @@
 import { prisma } from "@/lib/db"
-import { requireAuth } from "@/lib/auth"
+import { getSession } from "@/lib/auth"
 import { NextResponse } from "next/server"
 
 export async function GET() {
+  const userId = await getSession()
+  if (!userId) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+  }
+
   try {
-    await requireAuth()
     const invoices = await prisma.invoice.findMany({
       include: { entity: true, client: true },
       orderBy: { createdAt: "desc" },
     })
     return NextResponse.json(invoices)
   } catch {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
+  const userId = await getSession()
+  if (!userId) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+  }
+
   try {
-    await requireAuth()
     const data = await request.json()
     const quantity = Math.max(1, parseInt(data.quantity, 10) || 1)
     const unitPriceHT = parseFloat(data.amountHT)

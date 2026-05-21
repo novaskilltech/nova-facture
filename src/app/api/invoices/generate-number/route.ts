@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db"
-import { requireAuth } from "@/lib/auth"
+import { getSession } from "@/lib/auth"
 import { NextResponse } from "next/server"
 
 const FIRST_INVOICE_NUMBER = 500
@@ -26,8 +26,12 @@ function getEntityCode(entity: { id: string; commercialName: string; legalName: 
 }
 
 export async function GET(request: Request) {
+  const userId = await getSession()
+  if (!userId) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+  }
+
   try {
-    await requireAuth()
     const { searchParams } = new URL(request.url)
     const entityId = searchParams.get("entityId")
 
@@ -50,7 +54,6 @@ export async function GET(request: Request) {
         entityId,
         number: {
           endsWith: `-${entityCode}`,
-          mode: "insensitive",
         },
       },
       select: { number: true },
@@ -68,6 +71,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ number: formatted, next: nextNumber, entityCode })
   } catch {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }

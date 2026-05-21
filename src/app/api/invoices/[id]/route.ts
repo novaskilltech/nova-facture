@@ -1,10 +1,14 @@
 import { prisma } from "@/lib/db"
-import { requireAuth } from "@/lib/auth"
+import { getSession } from "@/lib/auth"
 import { NextResponse } from "next/server"
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const userId = await getSession()
+  if (!userId) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+  }
+
   try {
-    await requireAuth()
     const { id } = await params
     const invoice = await prisma.invoice.findUnique({
       where: { id },
@@ -15,13 +19,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     }
     return NextResponse.json(invoice)
   } catch {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const userId = await getSession()
+  if (!userId) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+  }
+
   try {
-    await requireAuth()
     const { id } = await params
     const data = await request.json()
 
