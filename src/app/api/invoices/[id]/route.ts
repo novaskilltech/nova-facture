@@ -84,3 +84,32 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Erreur lors de la modification" }, { status: 500 })
   }
 }
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const userId = await getSession()
+  if (!userId) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+  }
+
+  try {
+    const { id } = await params
+    const invoice = await prisma.invoice.findUnique({ where: { id } })
+
+    if (!invoice) {
+      return NextResponse.json({ error: "Facture non trouvée" }, { status: 404 })
+    }
+
+    if (invoice.status !== "draft") {
+      return NextResponse.json(
+        { error: "Seules les factures en brouillon peuvent être supprimées" },
+        { status: 403 }
+      )
+    }
+
+    await prisma.invoice.delete({ where: { id } })
+
+    return NextResponse.json({ success: true })
+  } catch {
+    return NextResponse.json({ error: "Erreur lors de la suppression" }, { status: 500 })
+  }
+}

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { InvoicePDFDownloadButton } from "@/components/InvoicePDFDownloadButton"
 import { InvoiceStatusSelector } from "@/components/InvoiceStatusSelector"
 import { AppHeader } from "@/components/AppHeader"
+import { DeleteDraftInvoiceButton } from "@/components/DeleteDraftInvoiceButton"
 
 export default async function InvoiceDetailPage({
   params,
@@ -88,7 +89,10 @@ export default async function InvoiceDetailPage({
               fileName={`facture-${invoice.number}.pdf`}
             />
             {invoice.status === "draft" && (
-              <EmitButton id={invoice.id} />
+              <>
+                <EmitButton id={invoice.id} />
+                <DeleteDraftInvoiceButton id={invoice.id} />
+              </>
             )}
           </div>
         </div>
