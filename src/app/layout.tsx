@@ -4,7 +4,8 @@ import "./globals.css"
 
 const appTitle = "Omra Facturation"
 const appDescription = "Application de facturation Omrayanair / La Conciergerie / Horizon Solutions"
-const resolvedSiteUrl =
+
+let resolvedSiteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
@@ -12,7 +13,16 @@ const resolvedSiteUrl =
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000")
 
-const siteUrl = new URL(resolvedSiteUrl)
+if (!resolvedSiteUrl.startsWith("http://") && !resolvedSiteUrl.startsWith("https://")) {
+  resolvedSiteUrl = `https://${resolvedSiteUrl}`
+}
+
+let siteUrl: URL
+try {
+  siteUrl = new URL(resolvedSiteUrl)
+} catch {
+  siteUrl = new URL("https://nova-facture.vercel.app")
+}
 
 const outfit = Outfit({
   variable: "--font-outfit",
