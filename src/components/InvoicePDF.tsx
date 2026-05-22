@@ -266,6 +266,7 @@ export function InvoicePDF({ invoice, logoSrc }: InvoicePDFProps) {
         <View style={styles.header}>
           <View style={styles.logoSection}>
             {logoSrc ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={logoSrc} style={styles.logoImage} />
             ) : (
               <View style={styles.logoPlaceholder}>

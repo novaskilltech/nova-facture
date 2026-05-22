@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { notFound } from "next/navigation"
+import { revalidatePath } from "next/cache"
 import { InvoicePDFDownloadButton } from "@/components/InvoicePDFDownloadButton"
 import { InvoiceStatusSelector } from "@/components/InvoiceStatusSelector"
 import { AppHeader } from "@/components/AppHeader"
@@ -259,11 +260,17 @@ export default async function InvoiceDetailPage({
 function EmitButton({ id }: { id: string }) {
   async function emitInvoice() {
     "use server"
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/invoices/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "emitted" }),
+    await requireAuth()
+    
+    await prisma.invoice.update({
+      where: { id },
+      data: {
+        status: "emitted",
+        emittedAt: new Date(),
+      },
     })
+    
+    revalidatePath(`/invoices/${id}`)
   }
 
   return (

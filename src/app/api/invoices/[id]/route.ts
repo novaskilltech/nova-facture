@@ -38,8 +38,29 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Facture non trouvée" }, { status: 404 })
     }
 
-    if (invoice.status === "emitted" || invoice.status === "paid") {
-      return NextResponse.json({ error: "Facture émise non modifiable" }, { status: 403 })
+    const isLocked = invoice.status === "emitted" || invoice.status === "paid"
+
+    if (isLocked) {
+      const hasRestrictedChanges =
+        data.number !== undefined ||
+        data.date !== undefined ||
+        data.periodStart !== undefined ||
+        data.periodEnd !== undefined ||
+        data.description !== undefined ||
+        data.quantity !== undefined ||
+        data.amountHT !== undefined ||
+        data.paymentMethod !== undefined ||
+        data.paymentLink !== undefined ||
+        data.entityId !== undefined ||
+        data.clientId !== undefined
+
+      if (hasRestrictedChanges) {
+        return NextResponse.json({ error: "Facture émise non modifiable" }, { status: 403 })
+      }
+
+      if (data.status === "draft") {
+        return NextResponse.json({ error: "Impossible de repasser une facture émise en brouillon" }, { status: 400 })
+      }
     }
 
     if (data.number && data.number !== invoice.number) {
