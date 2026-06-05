@@ -435,7 +435,11 @@ export default function NewInvoicePage() {
                           checked={includeVisa}
                           onChange={(e) => {
                             setIncludeVisa(e.target.checked)
-                            if (!e.target.checked) setVisaKsaAmount("")
+                            if (e.target.checked) {
+                              setVisaKsaAmount("135")
+                            } else {
+                              setVisaKsaAmount("")
+                            }
                           }}
                           className="h-4 w-4 rounded border-gray-300"
                         />
