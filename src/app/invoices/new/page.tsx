@@ -79,6 +79,7 @@ function buildProductDescription({
   includeVisa,
   includeVisaKsaExtra,
   visaKsaAmount,
+  visaKsaQuantity,
   roomType,
   includeBreakfast,
   customProducts,
@@ -89,6 +90,7 @@ function buildProductDescription({
   includeVisa: boolean
   includeVisaKsaExtra: boolean
   visaKsaAmount: string
+  visaKsaQuantity: string
   roomType: string
   includeBreakfast: boolean
   customProducts: CustomProduct[]
@@ -113,7 +115,9 @@ function buildProductDescription({
   if (includeVisa) {
     visaLabel = "Visa inclus (sans frais supplémentaires)"
   } else if (includeVisaKsaExtra) {
-    visaLabel = `avec frais de visa KSA supplémentaire (${parseFloat(visaKsaAmount || "0").toFixed(2)} €)`
+    const qtyVal = parseInt(visaKsaQuantity || "1", 10) || 1
+    const priceVal = parseFloat(visaKsaAmount || "0") || 0
+    visaLabel = `avec frais de visa KSA supplémentaire (${priceVal.toFixed(2)} € x ${qtyVal} = ${(priceVal * qtyVal).toFixed(2)} €)`
   }
 
   const lines = [
@@ -158,6 +162,7 @@ export default function NewInvoicePage() {
   const [includeVisa, setIncludeVisa] = useState(false)
   const [includeVisaKsaExtra, setIncludeVisaKsaExtra] = useState(false)
   const [visaKsaAmount, setVisaKsaAmount] = useState("")
+  const [visaKsaQuantity, setVisaKsaQuantity] = useState("1")
   const [roomType, setRoomType] = useState("double")
   const [includeBreakfast, setIncludeBreakfast] = useState(true)
   const [quantity, setQuantity] = useState("1")
@@ -205,6 +210,7 @@ export default function NewInvoicePage() {
         includeVisa,
         includeVisaKsaExtra,
         visaKsaAmount,
+        visaKsaQuantity,
         roomType,
         includeBreakfast,
         customProducts,
@@ -219,6 +225,7 @@ export default function NewInvoicePage() {
     includeVisa,
     includeVisaKsaExtra,
     visaKsaAmount,
+    visaKsaQuantity,
     roomType,
     includeBreakfast,
     customProducts,
@@ -234,7 +241,8 @@ export default function NewInvoicePage() {
   const breakfastSupplement = includeBreakfast ? stayDays * breakfastPricePerDay : 0
   const quantityValue = Math.max(1, parseInt(quantity || "1", 10) || 1)
   const baseUnitPriceHT = parseFloat(amountHT || "0") || 0
-  const visaKsaVal = includeVisaKsaExtra ? (parseFloat(visaKsaAmount || "0") || 0) : 0
+  const visaKsaQtyVal = parseInt(visaKsaQuantity || "1", 10) || 1
+  const visaKsaVal = includeVisaKsaExtra ? (parseFloat(visaKsaAmount || "0") || 0) * visaKsaQtyVal : 0
 
   const customProductsTotal = customProducts.reduce((acc, p) => {
     const priceVal = parseFloat(p.price || "0") || 0
@@ -467,8 +475,10 @@ export default function NewInvoicePage() {
                             if (e.target.checked) {
                               setIncludeVisa(false)
                               setVisaKsaAmount("135")
+                              setVisaKsaQuantity("1")
                             } else {
                               setVisaKsaAmount("")
+                              setVisaKsaQuantity("1")
                             }
                           }}
                           className="h-4 w-4 rounded border-gray-300"
@@ -476,15 +486,33 @@ export default function NewInvoicePage() {
                         Supplément Visa KSA
                       </label>
                       {includeVisaKsaExtra && (
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={visaKsaAmount}
-                          onChange={(e) => setVisaKsaAmount(e.target.value)}
-                          placeholder="Montant visa (€)"
-                          className="mt-1 w-full px-2 py-1 text-sm border rounded-md"
-                          required
-                        />
+                        <div className="mt-1 flex gap-2">
+                          <div className="flex-1">
+                            <label className="block text-[10px] text-gray-500 font-medium">Prix unitaire (€)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={visaKsaAmount}
+                              onChange={(e) => setVisaKsaAmount(e.target.value)}
+                              placeholder="135.00"
+                              className="w-full px-2 py-1 text-sm border rounded-md"
+                              required
+                            />
+                          </div>
+                          <div className="w-16">
+                            <label className="block text-[10px] text-gray-500 font-medium">Qté</label>
+                            <input
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={visaKsaQuantity}
+                              onChange={(e) => setVisaKsaQuantity(e.target.value)}
+                              placeholder="1"
+                              className="w-full px-2 py-1 text-sm border rounded-md"
+                              required
+                            />
+                          </div>
+                        </div>
                       )}
                     </div>
                     <div>
