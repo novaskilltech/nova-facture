@@ -77,6 +77,7 @@ function buildProductDescription({
   periodEnd,
   departureAirport,
   includeVisa,
+  includeVisaKsaExtra,
   visaKsaAmount,
   roomType,
   includeBreakfast,
@@ -86,6 +87,7 @@ function buildProductDescription({
   periodEnd: string
   departureAirport: string
   includeVisa: boolean
+  includeVisaKsaExtra: boolean
   visaKsaAmount: string
   roomType: string
   includeBreakfast: boolean
@@ -107,10 +109,17 @@ function buildProductDescription({
     ? `inclus (${stayDays} jour${stayDays > 1 ? "s" : ""} x ${breakfastPricePerDay.toFixed(2)} € = ${breakfastSupplement.toFixed(2)} €)`
     : "non inclus"
 
+  let visaLabel = "sans visa"
+  if (includeVisa) {
+    visaLabel = "Visa inclus (sans frais supplémentaires)"
+  } else if (includeVisaKsaExtra) {
+    visaLabel = `avec frais de visa KSA supplémentaire (${parseFloat(visaKsaAmount || "0").toFixed(2)} €)`
+  }
+
   const lines = [
     `Prestations de services - accompagnement logistique ${stayPeriod}`,
     `Aéroport de départ: ${departureAirport}`,
-    `Visa: ${includeVisa ? `avec visa KSA (${parseFloat(visaKsaAmount || "0").toFixed(2)} €)` : "sans visa"}`,
+    `Visa: ${visaLabel}`,
     `Hébergement: chambre ${roomLabel}`,
     `Supplément chambre: +${roomSupplement.toFixed(2)} €`,
     `Petit déjeuner: ${breakfastLabel}`,
@@ -147,6 +156,7 @@ export default function NewInvoicePage() {
   const [periodEnd, setPeriodEnd] = useState("")
   const [departureAirport, setDepartureAirport] = useState("Paris")
   const [includeVisa, setIncludeVisa] = useState(false)
+  const [includeVisaKsaExtra, setIncludeVisaKsaExtra] = useState(false)
   const [visaKsaAmount, setVisaKsaAmount] = useState("")
   const [roomType, setRoomType] = useState("double")
   const [includeBreakfast, setIncludeBreakfast] = useState(true)
@@ -193,6 +203,7 @@ export default function NewInvoicePage() {
         periodEnd,
         departureAirport,
         includeVisa,
+        includeVisaKsaExtra,
         visaKsaAmount,
         roomType,
         includeBreakfast,
@@ -206,6 +217,7 @@ export default function NewInvoicePage() {
     periodEnd,
     departureAirport,
     includeVisa,
+    includeVisaKsaExtra,
     visaKsaAmount,
     roomType,
     includeBreakfast,
@@ -222,7 +234,7 @@ export default function NewInvoicePage() {
   const breakfastSupplement = includeBreakfast ? stayDays * breakfastPricePerDay : 0
   const quantityValue = Math.max(1, parseInt(quantity || "1", 10) || 1)
   const baseUnitPriceHT = parseFloat(amountHT || "0") || 0
-  const visaKsaVal = includeVisa ? (parseFloat(visaKsaAmount || "0") || 0) : 0
+  const visaKsaVal = includeVisaKsaExtra ? (parseFloat(visaKsaAmount || "0") || 0) : 0
 
   const customProductsTotal = customProducts.reduce((acc, p) => {
     const priceVal = parseFloat(p.price || "0") || 0
@@ -436,6 +448,24 @@ export default function NewInvoicePage() {
                           onChange={(e) => {
                             setIncludeVisa(e.target.checked)
                             if (e.target.checked) {
+                              setIncludeVisaKsaExtra(false)
+                              setVisaKsaAmount("")
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        Visa inclus
+                      </label>
+                    </div>
+                    <div className="flex flex-col gap-2 rounded-md border border-gray-200 px-3 py-2">
+                      <label className="flex items-center gap-3 text-sm font-medium cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includeVisaKsaExtra}
+                          onChange={(e) => {
+                            setIncludeVisaKsaExtra(e.target.checked)
+                            if (e.target.checked) {
+                              setIncludeVisa(false)
                               setVisaKsaAmount("135")
                             } else {
                               setVisaKsaAmount("")
@@ -443,9 +473,9 @@ export default function NewInvoicePage() {
                           }}
                           className="h-4 w-4 rounded border-gray-300"
                         />
-                        Visa KSA
+                        Supplément Visa KSA
                       </label>
-                      {includeVisa && (
+                      {includeVisaKsaExtra && (
                         <input
                           type="number"
                           step="0.01"
@@ -684,9 +714,9 @@ export default function NewInvoicePage() {
                       <span>Petit déjeuner ({stayDays} jour{stayDays > 1 ? "s" : ""})</span>
                       <span>+{breakfastSupplement.toFixed(2)} €</span>
                     </div>
-                    {includeVisa && (
+                    {includeVisaKsaExtra && (
                       <div className="flex justify-between gap-4 text-sm">
-                        <span>Frais de visa KSA</span>
+                        <span>Supplément visa KSA</span>
                         <span>+{visaKsaVal.toFixed(2)} €</span>
                       </div>
                     )}
