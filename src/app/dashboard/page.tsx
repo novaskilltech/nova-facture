@@ -3,12 +3,34 @@ import { prisma } from "@/lib/db"
 import Link from "next/link"
 import { AppHeader } from "@/components/AppHeader"
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sortBy?: string; sortOrder?: string }>
+}) {
   await requireAuth()
+
+  const { sortBy, sortOrder } = await searchParams
+
+  const orderField = sortBy || "createdAt"
+  const orderDirection = sortOrder === "asc" ? "asc" : "desc"
+
+  let orderByInput: any = { createdAt: "desc" }
+  if (orderField === "number") {
+    orderByInput = { number: orderDirection }
+  } else if (orderField === "date") {
+    orderByInput = { date: orderDirection }
+  } else if (orderField === "totalTTC") {
+    orderByInput = { totalTTC: orderDirection }
+  } else if (orderField === "status") {
+    orderByInput = { status: orderDirection }
+  } else if (orderField === "createdAt") {
+    orderByInput = { createdAt: orderDirection }
+  }
 
   const invoices = await prisma.invoice.findMany({
     include: { entity: true, client: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: orderByInput,
     take: 20,
   })
 
@@ -161,16 +183,45 @@ export default async function DashboardPage() {
             </Link>
           </div>
           
+          <div className="p-4 md:hidden flex flex-wrap items-center gap-2 bg-slate-50/50 border-b border-slate-100 text-xs text-slate-500">
+            <span className="font-semibold mr-1">Trier :</span>
+            <Link href={`/dashboard?sortBy=date&sortOrder=${orderField === 'date' && orderDirection === 'desc' ? 'asc' : 'desc'}`} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'date' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
+              Date {orderField === 'date' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+            </Link>
+            <Link href={`/dashboard?sortBy=totalTTC&sortOrder=${orderField === 'totalTTC' && orderDirection === 'desc' ? 'asc' : 'desc'}`} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'totalTTC' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
+              Montant {orderField === 'totalTTC' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+            </Link>
+            <Link href={`/dashboard?sortBy=number&sortOrder=${orderField === 'number' && orderDirection === 'desc' ? 'asc' : 'desc'}`} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'number' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
+              Numéro {orderField === 'number' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+            </Link>
+          </div>
+          
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[860px] text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50">
-                  <th className="p-4 pl-6">Numéro</th>
+                  <th className="p-4 pl-6">
+                    <Link href={`/dashboard?sortBy=number&sortOrder=${orderField === 'number' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 select-none">
+                      Numéro {orderField === 'number' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+                    </Link>
+                  </th>
                   <th className="p-4">Société Émettrice</th>
                   <th className="p-4">Client / Payeur</th>
-                  <th className="p-4">Date de Facture</th>
-                  <th className="p-4 text-right">Montant TTC</th>
-                  <th className="p-4 text-center">Statut</th>
+                  <th className="p-4">
+                    <Link href={`/dashboard?sortBy=date&sortOrder=${orderField === 'date' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 select-none">
+                      Date de Facture {orderField === 'date' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+                    </Link>
+                  </th>
+                  <th className="p-4 text-right">
+                    <Link href={`/dashboard?sortBy=totalTTC&sortOrder=${orderField === 'totalTTC' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 justify-end select-none">
+                      Montant TTC {orderField === 'totalTTC' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+                    </Link>
+                  </th>
+                  <th className="p-4 text-center">
+                    <Link href={`/dashboard?sortBy=status&sortOrder=${orderField === 'status' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 justify-center select-none">
+                      Statut {orderField === 'status' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+                    </Link>
+                  </th>
                   <th className="p-4 pr-6 text-center">Actions</th>
                 </tr>
               </thead>

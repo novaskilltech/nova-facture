@@ -1,13 +1,43 @@
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import Link from "next/link"
 import { NewClientForm } from "@/components/NewClientForm"
 import { AppHeader } from "@/components/AppHeader"
 
-export default async function ClientsPage() {
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sortBy?: string; sortOrder?: string }>
+}) {
   await requireAuth()
 
+  const { sortBy, sortOrder } = await searchParams
+
+  const orderField = sortBy || "updatedAt"
+  const orderDirection = sortOrder === "asc" ? "asc" : "desc"
+
+  let orderByInput: any = { updatedAt: "desc" }
+  if (orderField === "name") {
+    orderByInput = [
+      { lastName: orderDirection },
+      { firstName: orderDirection }
+    ]
+  } else if (orderField === "company") {
+    orderByInput = { company: orderDirection }
+  } else if (orderField === "email") {
+    orderByInput = { email: orderDirection }
+  } else if (orderField === "phone") {
+    orderByInput = { phone: orderDirection }
+  } else if (orderField === "invoiceCount") {
+    orderByInput = {
+      invoices: {
+        _count: orderDirection
+      }
+    }
+  }
+
   const clients = await prisma.client.findMany({
-    orderBy: { updatedAt: "desc" },
+    orderBy: orderByInput,
   })
 
   return (
@@ -25,16 +55,49 @@ export default async function ClientsPage() {
           <NewClientForm />
         </div>
 
+        <div className="p-4 md:hidden flex flex-wrap items-center gap-2 bg-slate-50/50 border rounded-lg mb-4 text-xs text-slate-500">
+          <span className="font-semibold mr-1">Trier :</span>
+          <Link href={`/clients?sortBy=name&sortOrder=${orderField === 'name' && orderDirection === 'desc' ? 'asc' : 'desc'}`} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'name' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
+            Nom {orderField === 'name' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+          </Link>
+          <Link href={`/clients?sortBy=company&sortOrder=${orderField === 'company' && orderDirection === 'desc' ? 'asc' : 'desc'}`} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'company' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
+            Entreprise {orderField === 'company' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+          </Link>
+          <Link href={`/clients?sortBy=invoiceCount&sortOrder=${orderField === 'invoiceCount' && orderDirection === 'desc' ? 'asc' : 'desc'}`} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'invoiceCount' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
+            Factures {orderField === 'invoiceCount' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+          </Link>
+        </div>
+
         <div className="hidden overflow-hidden rounded-lg bg-white shadow sm:block">
           <div className="overflow-x-auto">
           <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b text-left text-sm text-gray-500">
-                <th className="p-4">Nom</th>
-                <th className="p-4">Entreprise</th>
-                <th className="p-4">Email</th>
-                <th className="p-4">Téléphone</th>
-                <th className="p-4">Factures</th>
+                <th className="p-4">
+                  <Link href={`/clients?sortBy=name&sortOrder=${orderField === 'name' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 select-none">
+                    Nom {orderField === 'name' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+                  </Link>
+                </th>
+                <th className="p-4">
+                  <Link href={`/clients?sortBy=company&sortOrder=${orderField === 'company' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 select-none">
+                    Entreprise {orderField === 'company' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+                  </Link>
+                </th>
+                <th className="p-4">
+                  <Link href={`/clients?sortBy=email&sortOrder=${orderField === 'email' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 select-none">
+                    Email {orderField === 'email' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+                  </Link>
+                </th>
+                <th className="p-4">
+                  <Link href={`/clients?sortBy=phone&sortOrder=${orderField === 'phone' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 select-none">
+                    Téléphone {orderField === 'phone' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+                  </Link>
+                </th>
+                <th className="p-4">
+                  <Link href={`/clients?sortBy=invoiceCount&sortOrder=${orderField === 'invoiceCount' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 select-none">
+                    Factures {orderField === 'invoiceCount' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
+                  </Link>
+                </th>
               </tr>
             </thead>
             <tbody>
