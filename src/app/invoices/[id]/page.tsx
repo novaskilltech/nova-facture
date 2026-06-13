@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { notFound } from "next/navigation"
 import { revalidatePath } from "next/cache"
+import Link from "next/link"
 import { InvoicePDFDownloadButton } from "@/components/InvoicePDFDownloadButton"
 import { InvoiceStatusSelector } from "@/components/InvoiceStatusSelector"
 import { AppHeader } from "@/components/AppHeader"
@@ -91,6 +92,12 @@ export default async function InvoiceDetailPage({
             />
             {invoice.status === "draft" && (
               <>
+                <Link
+                  href={`/invoices/${invoice.id}/edit`}
+                  className="w-full rounded-md border border-gray-300 bg-white px-4 py-2.5 text-center font-semibold text-gray-700 hover:bg-gray-50 sm:w-auto sm:py-2"
+                >
+                  Modifier
+                </Link>
                 <EmitButton id={invoice.id} />
                 <DeleteDraftInvoiceButton id={invoice.id} />
               </>
