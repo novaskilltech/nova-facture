@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AppHeader } from "@/components/AppHeader"
 
 interface Entity {
@@ -141,8 +141,79 @@ function buildProductDescription({
   return lines.join("\n")
 }
 
-export default function NewInvoicePage() {
+function parseInvoiceDescription(description: string) {
+  const result = {
+    departureAirport: "Paris",
+    includeVisa: false,
+    includeVisaKsaExtra: false,
+    visaKsaAmount: "",
+    visaKsaQuantity: "1",
+    roomType: "double",
+    includeBreakfast: true,
+    customProducts: [] as CustomProduct[],
+  }
+
+  if (!description) return result
+
+  const airportMatch = description.match(/Aéroport de départ:\s*([^\r\n]+)/)
+  if (airportMatch) {
+    result.departureAirport = airportMatch[1].trim()
+  }
+
+  if (description.includes("Visa inclus")) {
+    result.includeVisa = true
+  } else if (description.includes("avec frais de visa KSA supplémentaire")) {
+    result.includeVisaKsaExtra = true
+    const visaMatch = description.match(/supplémentaire \(([\d.]+)\s*€\s*x\s*(\d+)/)
+    if (visaMatch) {
+      result.visaKsaAmount = visaMatch[1]
+      result.visaKsaQuantity = visaMatch[2]
+    }
+  }
+
+  const roomMatch = description.match(/Hébergement:\s*chambre\s*([^\r\n]+)/)
+  if (roomMatch) {
+    const label = roomMatch[1].trim()
+    const found = roomTypes.find(t => t.label.toLowerCase() === label.toLowerCase())
+    if (found) {
+      result.roomType = found.value
+    }
+  }
+
+  if (description.includes("Petit déjeuner: inclus")) {
+    result.includeBreakfast = true
+  } else if (description.includes("Petit déjeuner: non inclus")) {
+    result.includeBreakfast = false
+  }
+
+  if (description.includes("Produits additionnels :")) {
+    const lines = description.split("\n")
+    const startIndex = lines.findIndex(l => l.includes("Produits additionnels :"))
+    if (startIndex !== -1) {
+      for (let i = startIndex + 1; i < lines.length; i++) {
+        const line = lines[i].trim()
+        if (line.startsWith("-")) {
+          const match = line.match(/^-\s*(.*?)\s*:\s*([\d.]+)\s*€\s*x\s*(\d+)/)
+          if (match) {
+            result.customProducts.push({
+              id: Math.random().toString(36).substring(2, 9),
+              name: match[1].trim(),
+              price: match[2],
+              quantity: match[3],
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return result
+}
+
+function NewInvoiceForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const duplicateFrom = searchParams.get("duplicateFrom")
   const [entities, setEntities] = useState<Entity[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
@@ -176,15 +247,70 @@ export default function NewInvoicePage() {
   const [customProducts, setCustomProducts] = useState<CustomProduct[]>([])
 
   useEffect(() => {
-    Promise.all([
+    const promises = [
       fetch("/api/entities").then((r) => r.json()),
       fetch("/api/clients").then((r) => r.json()),
-    ]).then(([entitiesData, clientsData]) => {
+    ]
+    if (duplicateFrom) {
+      promises.push(fetch(`/api/invoices/${duplicateFrom}`).then((r) => r.json()))
+    }
+
+    Promise.all(promises).then(([entitiesData, clientsData, invoiceData]) => {
       setEntities(entitiesData)
       setClients(clientsData)
+
+      if (invoiceData && !invoiceData.error) {
+        setSelectedEntity(invoiceData.entityId)
+        setSelectedClient(invoiceData.clientId)
+        setQuantity(invoiceData.quantity.toString())
+        setPaymentMethod(invoiceData.paymentMethod || "")
+        setPaymentLink(invoiceData.paymentLink || "")
+        setNotes(invoiceData.notes || "")
+        setDescription(invoiceData.description || "")
+
+        const parsed = parseInvoiceDescription(invoiceData.description || "")
+        setDepartureAirport(parsed.departureAirport)
+        setIncludeVisa(parsed.includeVisa)
+        setIncludeVisaKsaExtra(parsed.includeVisaKsaExtra)
+        setVisaKsaAmount(parsed.visaKsaAmount)
+        setVisaKsaQuantity(parsed.visaKsaQuantity)
+        setRoomType(parsed.roomType)
+        setIncludeBreakfast(parsed.includeBreakfast)
+        setCustomProducts(parsed.customProducts)
+
+        const qtyVal = invoiceData.quantity || 1
+        const totalHTFromDB = invoiceData.amountHT
+        const customProductsTotal = parsed.customProducts.reduce((acc, p) => {
+          const priceVal = parseFloat(p.price || "0") || 0
+          const qtyVal = parseInt(p.quantity || "1", 10) || 1
+          return acc + (priceVal * qtyVal)
+        }, 0)
+
+        const totalPackageHT = totalHTFromDB - customProductsTotal
+        const packageUnitPriceHT = totalPackageHT / qtyVal
+
+        const roomSupplement = roomTypes.find((type) => type.value === parsed.roomType)?.supplement || 0
+        const stayDays = calculateStayDays(
+          invoiceData.periodStart ? invoiceData.periodStart.split("T")[0] : "",
+          invoiceData.periodEnd ? invoiceData.periodEnd.split("T")[0] : ""
+        )
+        const breakfastSupplement = parsed.includeBreakfast ? stayDays * breakfastPricePerDay : 0
+        const visaKsaQtyVal = parseInt(parsed.visaKsaQuantity || "1", 10) || 1
+        const visaKsaVal = parsed.includeVisaKsaExtra ? (parseFloat(parsed.visaKsaAmount || "0") || 0) * visaKsaQtyVal : 0
+
+        const baseUnitPriceHT = packageUnitPriceHT - roomSupplement - breakfastSupplement - visaKsaVal
+        setAmountHT(Math.max(0, baseUnitPriceHT).toFixed(2))
+
+        setPeriodStart(invoiceData.periodStart ? invoiceData.periodStart.split("T")[0] : "")
+        setPeriodEnd(invoiceData.periodEnd ? invoiceData.periodEnd.split("T")[0] : "")
+        setAutoGenerateDescription(false)
+      }
+      setLoading(false)
+    }).catch(() => {
+      setError("Erreur lors du chargement des données")
       setLoading(false)
     })
-  }, [])
+  }, [duplicateFrom])
 
   useEffect(() => {
     if (!selectedEntity) return
@@ -897,5 +1023,13 @@ export default function NewInvoicePage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function NewInvoicePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+      <NewInvoiceForm />
+    </Suspense>
   )
 }

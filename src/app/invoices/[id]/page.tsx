@@ -90,6 +90,12 @@ export default async function InvoiceDetailPage({
               invoice={pdfInvoice}
               fileName={`facture-${invoice.number}.pdf`}
             />
+            <Link
+              href={`/invoices/new?duplicateFrom=${invoice.id}`}
+              className="w-full rounded-md border border-gray-300 bg-white px-4 py-2.5 text-center font-semibold text-gray-700 hover:bg-gray-50 sm:w-auto sm:py-2"
+            >
+              Dupliquer
+            </Link>
             {invoice.status === "draft" && (
               <>
                 <Link
