@@ -341,6 +341,7 @@ function NewInvoiceForm() {
         includeBreakfast,
         customProducts,
       })
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDescription(generated)
     }
   }, [

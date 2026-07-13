@@ -45,23 +45,6 @@ interface CustomProduct {
   quantity: string
 }
 
-interface Invoice {
-  id: string
-  number: string
-  date: string
-  periodStart?: string | null
-  periodEnd?: string | null
-  description: string
-  quantity: number
-  amountHT: number
-  status: string
-  paymentMethod: string
-  paymentLink?: string | null
-  notes?: string | null
-  entityId: string
-  clientId: string
-}
-
 const roomTypes = [
   { value: "single", label: "Single", supplement: 600 },
   { value: "double", label: "Double", supplement: 200 },
@@ -357,6 +340,7 @@ export default function EditInvoicePage({
         includeBreakfast,
         customProducts,
       })
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDescription(generated)
     }
   }, [

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db"
 import Link from "next/link"
 import { NewClientForm } from "@/components/NewClientForm"
 import { AppHeader } from "@/components/AppHeader"
+import { Prisma } from "@prisma/client"
 
 export default async function ClientsPage({
   searchParams,
@@ -16,7 +17,7 @@ export default async function ClientsPage({
   const orderField = sortBy || "updatedAt"
   const orderDirection = sortOrder === "asc" ? "asc" : "desc"
 
-  let orderByInput: any = { updatedAt: "desc" }
+  let orderByInput: Prisma.ClientOrderByWithRelationInput | Prisma.ClientOrderByWithRelationInput[] = { updatedAt: "desc" }
   if (orderField === "name") {
     orderByInput = [
       { lastName: orderDirection },

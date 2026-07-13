@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import Link from "next/link"
 import { AppHeader } from "@/components/AppHeader"
+import { Prisma } from "@prisma/client"
 
 export default async function DashboardPage({
   searchParams,
@@ -15,7 +16,7 @@ export default async function DashboardPage({
   const orderField = sortBy || "createdAt"
   const orderDirection = sortOrder === "asc" ? "asc" : "desc"
 
-  let orderByInput: any = { createdAt: "desc" }
+  let orderByInput: Prisma.InvoiceOrderByWithRelationInput | Prisma.InvoiceOrderByWithRelationInput[] = { createdAt: "desc" }
   if (orderField === "number") {
     orderByInput = { number: orderDirection }
   } else if (orderField === "date") {
