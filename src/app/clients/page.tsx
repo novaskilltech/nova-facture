@@ -53,7 +53,15 @@ export default async function ClientsPage({
       <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-2xl font-bold">Payeurs</h2>
-          <NewClientForm />
+          <div className="flex items-center gap-3">
+            <a
+              href="/api/export/clients"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 shadow-premium transition-premium hover:bg-slate-50 cursor-pointer sm:py-2"
+            >
+              Exporter les clients (CSV)
+            </a>
+            <NewClientForm />
+          </div>
         </div>
 
         <div className="p-4 md:hidden flex flex-wrap items-center gap-2 bg-slate-50/50 border rounded-lg mb-4 text-xs text-slate-500">
