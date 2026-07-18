@@ -2,19 +2,21 @@ import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import Link from "next/link"
 import { AppHeader } from "@/components/AppHeader"
+import { StatusFilter } from "@/components/StatusFilter"
 import { Prisma } from "@prisma/client"
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sortBy?: string; sortOrder?: string }>
+  searchParams: Promise<{ sortBy?: string; sortOrder?: string; status?: string }>
 }) {
   await requireAuth()
 
-  const { sortBy, sortOrder } = await searchParams
+  const { sortBy, sortOrder, status } = await searchParams
 
   const orderField = sortBy || "createdAt"
   const orderDirection = sortOrder === "asc" ? "asc" : "desc"
+  const filterStatus = status || "all"
 
   let orderByInput: Prisma.InvoiceOrderByWithRelationInput | Prisma.InvoiceOrderByWithRelationInput[] = { createdAt: "desc" }
   if (orderField === "number") {
@@ -29,29 +31,32 @@ export default async function DashboardPage({
     orderByInput = { createdAt: orderDirection }
   }
 
-  const invoices = await prisma.invoice.findMany({
+  const allInvoices = await prisma.invoice.findMany({
     include: { entity: true, client: true },
     orderBy: orderByInput,
-    take: 20,
   })
 
   const stats = {
-    total: invoices.length,
-    draft: invoices.filter((i) => i.status === "draft").length,
-    emitted: invoices.filter((i) => i.status === "emitted").length,
-    paid: invoices.filter((i) => i.status === "paid").length,
-    late: invoices.filter((i) => i.status === "late").length,
-    cancelled: invoices.filter((i) => i.status === "cancelled").length,
-    totalAmount: invoices
+    total: allInvoices.length,
+    draft: allInvoices.filter((i) => i.status === "draft").length,
+    emitted: allInvoices.filter((i) => i.status === "emitted").length,
+    paid: allInvoices.filter((i) => i.status === "paid").length,
+    late: allInvoices.filter((i) => i.status === "late").length,
+    cancelled: allInvoices.filter((i) => i.status === "cancelled").length,
+    totalAmount: allInvoices
       .filter((i) => i.status !== "cancelled")
       .reduce((sum, i) => sum + i.totalTTC, 0),
-    paidAmount: invoices
+    paidAmount: allInvoices
       .filter((i) => i.status === "paid")
       .reduce((sum, i) => sum + i.totalTTC, 0),
-    pendingAmount: invoices
+    pendingAmount: allInvoices
       .filter((i) => i.status === "emitted" || i.status === "late")
       .reduce((sum, i) => sum + i.totalTTC, 0),
   }
+
+  const invoices = filterStatus === "all"
+    ? allInvoices.slice(0, 20)
+    : allInvoices.filter((i) => i.status === filterStatus).slice(0, 20)
 
   const paidPercentage = stats.totalAmount > 0 
     ? (stats.paidAmount / stats.totalAmount) * 100 
@@ -178,7 +183,10 @@ export default async function DashboardPage({
         {/* Tableau des Factures Épuré */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-premium overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-3 sm:p-6">
-            <h2 className="text-lg font-bold text-slate-900">Dernières Factures</h2>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <h2 className="text-lg font-bold text-slate-900">Dernières Factures</h2>
+              <StatusFilter currentStatus={filterStatus} />
+            </div>
             <Link href="/invoices/new" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-premium">
               Créer une facture ➔
             </Link>
