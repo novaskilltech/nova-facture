@@ -43,6 +43,9 @@ interface CustomProduct {
   name: string
   price: string
   quantity: string
+  discountType?: string
+  discountValue?: string
+  discountName?: string
 }
 
 const roomTypes = [
@@ -73,6 +76,48 @@ function calculateStayDays(periodStart: string, periodEnd: string) {
   return Math.ceil(durationInMs / (1000 * 60 * 60 * 24))
 }
 
+function formatLineDiscount(type?: string, value?: string, name?: string, basePrice?: number) {
+  if (!type || type === "none" || !value || !basePrice) return ""
+  const valFloat = parseFloat(value) || 0
+  if (valFloat <= 0) return ""
+  let discountAmount = 0
+  let symbol = ""
+  if (type === "percentage") {
+    discountAmount = basePrice * (valFloat / 100)
+    symbol = `${valFloat}%`
+  } else {
+    discountAmount = valFloat
+    symbol = `${valFloat} €`
+  }
+  const label = name ? `${name} (-${symbol})` : `Remise (-${symbol})`
+  return ` [Remise: ${label}: -${discountAmount.toFixed(2)} €]`
+}
+
+function parseLineDiscount(line: string) {
+  const match = line.match(/\[Remise:\s*(.*?)\s*\((-?[\d.]+)(%| €)?\):\s*-?([\d.]+) €\]/)
+  if (match) {
+    const labelAndSymbol = match[1]
+    const valStr = match[2]
+    const isPercentage = match[3] === "%"
+    
+    let name = labelAndSymbol
+    if (labelAndSymbol.includes("(-")) {
+      name = labelAndSymbol.split("(-")[0].trim()
+    }
+    
+    return {
+      discountType: isPercentage ? "percentage" : "amount",
+      discountValue: valStr,
+      discountName: name,
+    }
+  }
+  return {
+    discountType: "none",
+    discountValue: "",
+    discountName: "",
+  }
+}
+
 function buildProductDescription({
   periodStart,
   periodEnd,
@@ -81,7 +126,13 @@ function buildProductDescription({
   includeVisaKsaExtra,
   visaKsaAmount,
   visaKsaQuantity,
+  visaKsaDiscountType,
+  visaKsaDiscountValue,
+  visaKsaDiscountName,
   roomType,
+  roomDiscountType,
+  roomDiscountValue,
+  roomDiscountName,
   includeBreakfast,
   customProducts,
 }: {
@@ -92,7 +143,13 @@ function buildProductDescription({
   includeVisaKsaExtra: boolean
   visaKsaAmount: string
   visaKsaQuantity: string
+  visaKsaDiscountType?: string
+  visaKsaDiscountValue?: string
+  visaKsaDiscountName?: string
   roomType: string
+  roomDiscountType?: string
+  roomDiscountValue?: string
+  roomDiscountName?: string
   includeBreakfast: boolean
   customProducts: CustomProduct[]
 }) {
@@ -118,15 +175,19 @@ function buildProductDescription({
   } else if (includeVisaKsaExtra) {
     const qtyVal = parseInt(visaKsaQuantity || "1", 10) || 1
     const priceVal = parseFloat(visaKsaAmount || "0") || 0
-    visaLabel = `avec frais de visa KSA supplémentaire (${priceVal.toFixed(2)} € x ${qtyVal} = ${(priceVal * qtyVal).toFixed(2)} €)`
+    const baseTotal = priceVal * qtyVal
+    const discStr = formatLineDiscount(visaKsaDiscountType, visaKsaDiscountValue, visaKsaDiscountName, baseTotal)
+    visaLabel = `avec frais de visa KSA supplémentaire (${priceVal.toFixed(2)} € x ${qtyVal} = ${baseTotal.toFixed(2)} €)${discStr}`
   }
+
+  const roomDiscStr = formatLineDiscount(roomDiscountType, roomDiscountValue, roomDiscountName, roomSupplement)
 
   const lines = [
     `Prestations de services - accompagnement logistique ${stayPeriod}`,
     `Aéroport de départ: ${departureAirport}`,
     `Visa: ${visaLabel}`,
     `Hébergement: chambre ${roomLabel}`,
-    `Supplément chambre: +${roomSupplement.toFixed(2)} €`,
+    `Supplément chambre: +${roomSupplement.toFixed(2)} €${roomDiscStr}`,
     `Petit déjeuner: ${breakfastLabel}`,
   ]
 
@@ -135,7 +196,9 @@ function buildProductDescription({
     customProducts.forEach((p) => {
       const priceVal = parseFloat(p.price || "0")
       const qtyVal = parseInt(p.quantity || "1", 10) || 1
-      lines.push(`- ${p.name || "Produit sans nom"} : ${priceVal.toFixed(2)} € x ${qtyVal} = ${(priceVal * qtyVal).toFixed(2)} €`)
+      const baseTotal = priceVal * qtyVal
+      const discStr = formatLineDiscount(p.discountType, p.discountValue, p.discountName, baseTotal)
+      lines.push(`- ${p.name || "Produit sans nom"} : ${priceVal.toFixed(2)} € x ${qtyVal} = ${baseTotal.toFixed(2)} €${discStr}`)
     })
   }
 
@@ -149,7 +212,13 @@ function parseInvoiceDescription(description: string) {
     includeVisaKsaExtra: false,
     visaKsaAmount: "",
     visaKsaQuantity: "1",
+    visaKsaDiscountType: "none",
+    visaKsaDiscountValue: "",
+    visaKsaDiscountName: "",
     roomType: "double",
+    roomDiscountType: "none",
+    roomDiscountValue: "",
+    roomDiscountName: "",
     includeBreakfast: true,
     customProducts: [] as CustomProduct[],
   }
@@ -170,6 +239,13 @@ function parseInvoiceDescription(description: string) {
       result.visaKsaAmount = visaMatch[1]
       result.visaKsaQuantity = visaMatch[2]
     }
+    const visaLine = description.split("\n").find(l => l.includes("Visa:") && l.includes("KSA"))
+    if (visaLine) {
+      const disc = parseLineDiscount(visaLine)
+      result.visaKsaDiscountType = disc.discountType
+      result.visaKsaDiscountValue = disc.discountValue
+      result.visaKsaDiscountName = disc.discountName
+    }
   }
 
   const roomMatch = description.match(/Hébergement:\s*chambre\s*([^\r\n]+)/)
@@ -179,6 +255,14 @@ function parseInvoiceDescription(description: string) {
     if (found) {
       result.roomType = found.value
     }
+  }
+
+  const roomLine = description.split("\n").find(l => l.includes("Supplément chambre:"))
+  if (roomLine) {
+    const disc = parseLineDiscount(roomLine)
+    result.roomDiscountType = disc.discountType
+    result.roomDiscountValue = disc.discountValue
+    result.roomDiscountName = disc.discountName
   }
 
   if (description.includes("Petit déjeuner: inclus")) {
@@ -196,11 +280,15 @@ function parseInvoiceDescription(description: string) {
         if (line.startsWith("-")) {
           const match = line.match(/^-\s*(.*?)\s*:\s*([\d.]+)\s*€\s*x\s*(\d+)/)
           if (match) {
+            const disc = parseLineDiscount(line)
             result.customProducts.push({
               id: Math.random().toString(36).substring(2, 9),
               name: match[1].trim(),
               price: match[2],
               quantity: match[3],
+              discountType: disc.discountType,
+              discountValue: disc.discountValue,
+              discountName: disc.discountName,
             })
           }
         }
@@ -250,6 +338,18 @@ export default function EditInvoicePage({
   const [autoGenerateDescription, setAutoGenerateDescription] = useState(false)
   const [customProducts, setCustomProducts] = useState<CustomProduct[]>([])
 
+  const [visaKsaDiscountType, setVisaKsaDiscountType] = useState("none")
+  const [visaKsaDiscountValue, setVisaKsaDiscountValue] = useState("")
+  const [visaKsaDiscountName, setVisaKsaDiscountName] = useState("")
+
+  const [roomDiscountType, setRoomDiscountType] = useState("none")
+  const [roomDiscountValue, setRoomDiscountValue] = useState("")
+  const [roomDiscountName, setRoomDiscountName] = useState("")
+
+  const [discountType, setDiscountType] = useState("none")
+  const [discountValue, setDiscountValue] = useState("")
+  const [discountName, setDiscountName] = useState("")
+
   useEffect(() => {
     Promise.all([
       fetch("/api/entities").then((r) => r.json()),
@@ -291,20 +391,42 @@ export default function EditInvoicePage({
       setIncludeVisaKsaExtra(parsed.includeVisaKsaExtra)
       setVisaKsaAmount(parsed.visaKsaAmount)
       setVisaKsaQuantity(parsed.visaKsaQuantity)
+      setVisaKsaDiscountType(parsed.visaKsaDiscountType || "none")
+      setVisaKsaDiscountValue(parsed.visaKsaDiscountValue || "")
+      setVisaKsaDiscountName(parsed.visaKsaDiscountName || "")
       setRoomType(parsed.roomType)
+      setRoomDiscountType(parsed.roomDiscountType || "none")
+      setRoomDiscountValue(parsed.roomDiscountValue || "")
+      setRoomDiscountName(parsed.roomDiscountName || "")
       setIncludeBreakfast(parsed.includeBreakfast)
       setCustomProducts(parsed.customProducts)
 
+      setDiscountType(invoiceData.discountType || "none")
+      setDiscountValue(invoiceData.discountValue ? invoiceData.discountValue.toString() : "")
+      setDiscountName(invoiceData.discountName || "")
+
       // Calculate unitPriceHT hors chambre
       const qtyVal = invoiceData.quantity || 1
-      const totalHTFromDB = invoiceData.amountHT // This is total HT from DB
+      const totalHTFromDB = invoiceData.amountHT
       const customProductsTotal = parsed.customProducts.reduce((acc, p) => {
         const priceVal = parseFloat(p.price || "0") || 0
         const qtyVal = parseInt(p.quantity || "1", 10) || 1
-        return acc + (priceVal * qtyVal)
+        let prodTotal = priceVal * qtyVal
+        if (p.discountType === "percentage") {
+          prodTotal -= prodTotal * ((parseFloat(p.discountValue || "0") || 0) / 100)
+        } else if (p.discountType === "amount") {
+          prodTotal -= parseFloat(p.discountValue || "0") || 0
+        }
+        return acc + Math.max(0, prodTotal)
       }, 0)
 
-      const totalPackageHT = totalHTFromDB - customProductsTotal
+      let totalPackageHT = totalHTFromDB - customProductsTotal
+      if (invoiceData.discountType === "percentage") {
+        totalPackageHT = totalPackageHT / (1 - (invoiceData.discountValue || 0) / 100)
+      } else if (invoiceData.discountType === "amount") {
+        totalPackageHT = totalPackageHT + (invoiceData.discountValue || 0)
+      }
+
       const packageUnitPriceHT = totalPackageHT / qtyVal
 
       const roomSupplement = roomTypes.find((type) => type.value === parsed.roomType)?.supplement || 0
@@ -313,10 +435,23 @@ export default function EditInvoicePage({
         invoiceData.periodEnd ? invoiceData.periodEnd.split("T")[0] : ""
       )
       const breakfastSupplement = parsed.includeBreakfast ? stayDays * breakfastPricePerDay : 0
+      
       const visaKsaQtyVal = parseInt(parsed.visaKsaQuantity || "1", 10) || 1
-      const visaKsaVal = parsed.includeVisaKsaExtra ? (parseFloat(parsed.visaKsaAmount || "0") || 0) * visaKsaQtyVal : 0
+      let visaKsaVal = parsed.includeVisaKsaExtra ? (parseFloat(parsed.visaKsaAmount || "0") || 0) * visaKsaQtyVal : 0
+      if (parsed.visaKsaDiscountType === "percentage") {
+        visaKsaVal -= visaKsaVal * ((parseFloat(parsed.visaKsaDiscountValue || "0") || 0) / 100)
+      } else if (parsed.visaKsaDiscountType === "amount") {
+        visaKsaVal -= parseFloat(parsed.visaKsaDiscountValue || "0") || 0
+      }
 
-      const baseUnitPriceHT = packageUnitPriceHT - roomSupplement - breakfastSupplement - visaKsaVal
+      let roomSupplementVal = roomSupplement
+      if (parsed.roomDiscountType === "percentage") {
+        roomSupplementVal -= roomSupplementVal * ((parseFloat(parsed.roomDiscountValue || "0") || 0) / 100)
+      } else if (parsed.roomDiscountType === "amount") {
+        roomSupplementVal -= parseFloat(parsed.roomDiscountValue || "0") || 0
+      }
+
+      const baseUnitPriceHT = packageUnitPriceHT - roomSupplementVal - breakfastSupplement - visaKsaVal
       setAmountHT(Math.max(0, baseUnitPriceHT).toFixed(2))
 
       setLoading(false)
@@ -336,7 +471,13 @@ export default function EditInvoicePage({
         includeVisaKsaExtra,
         visaKsaAmount,
         visaKsaQuantity,
+        visaKsaDiscountType,
+        visaKsaDiscountValue,
+        visaKsaDiscountName,
         roomType,
+        roomDiscountType,
+        roomDiscountValue,
+        roomDiscountName,
         includeBreakfast,
         customProducts,
       })
@@ -352,7 +493,13 @@ export default function EditInvoicePage({
     includeVisaKsaExtra,
     visaKsaAmount,
     visaKsaQuantity,
+    visaKsaDiscountType,
+    visaKsaDiscountValue,
+    visaKsaDiscountName,
     roomType,
+    roomDiscountType,
+    roomDiscountValue,
+    roomDiscountName,
     includeBreakfast,
     customProducts,
   ])
@@ -370,14 +517,44 @@ export default function EditInvoicePage({
   const visaKsaQtyVal = parseInt(visaKsaQuantity || "1", 10) || 1
   const visaKsaVal = includeVisaKsaExtra ? (parseFloat(visaKsaAmount || "0") || 0) * visaKsaQtyVal : 0
 
+  let discountedVisaKsaVal = visaKsaVal
+  if (visaKsaDiscountType === "percentage") {
+    discountedVisaKsaVal -= visaKsaVal * ((parseFloat(visaKsaDiscountValue || "0") || 0) / 100)
+  } else if (visaKsaDiscountType === "amount") {
+    discountedVisaKsaVal -= parseFloat(visaKsaDiscountValue || "0") || 0
+  }
+  discountedVisaKsaVal = Math.max(0, discountedVisaKsaVal)
+
+  let discountedRoomSupplement = roomSupplement
+  if (roomDiscountType === "percentage") {
+    discountedRoomSupplement -= roomSupplement * ((parseFloat(roomDiscountValue || "0") || 0) / 100)
+  } else if (roomDiscountType === "amount") {
+    discountedRoomSupplement -= parseFloat(roomDiscountValue || "0") || 0
+  }
+  discountedRoomSupplement = Math.max(0, discountedRoomSupplement)
+
   const customProductsTotal = customProducts.reduce((acc, p) => {
     const priceVal = parseFloat(p.price || "0") || 0
     const qtyVal = parseInt(p.quantity || "1", 10) || 1
-    return acc + (priceVal * qtyVal)
+    let prodTotal = priceVal * qtyVal
+    if (p.discountType === "percentage") {
+      prodTotal -= prodTotal * ((parseFloat(p.discountValue || "0") || 0) / 100)
+    } else if (p.discountType === "amount") {
+      prodTotal -= parseFloat(p.discountValue || "0") || 0
+    }
+    return acc + Math.max(0, prodTotal)
   }, 0)
 
-  const packageUnitPriceHT = baseUnitPriceHT + roomSupplement + breakfastSupplement + visaKsaVal
-  const totalHT = (quantityValue * packageUnitPriceHT) + customProductsTotal
+  const packageUnitPriceHT = baseUnitPriceHT + discountedRoomSupplement + breakfastSupplement + discountedVisaKsaVal
+  const totalHTBeforeGlobalDiscount = (quantityValue * packageUnitPriceHT) + customProductsTotal
+
+  let globalDiscountAmount = 0
+  if (discountType === "percentage") {
+    globalDiscountAmount = totalHTBeforeGlobalDiscount * ((parseFloat(discountValue || "0") || 0) / 100)
+  } else if (discountType === "amount") {
+    globalDiscountAmount = parseFloat(discountValue || "0") || 0
+  }
+  const totalHT = Math.max(0, totalHTBeforeGlobalDiscount - globalDiscountAmount)
 
   async function handleCreateClient() {
     try {
@@ -415,6 +592,9 @@ export default function EditInvoicePage({
           description,
           quantity: quantityValue,
           amountHT: totalHT / quantityValue,
+          discountType,
+          discountValue: parseFloat(discountValue) || 0,
+          discountName: discountName || null,
           paymentMethod,
           paymentLink: paymentLink || null,
           notes: notes || null,
@@ -620,48 +800,116 @@ export default function EditInvoicePage({
                           Supplément Visa KSA
                         </label>
                         {includeVisaKsaExtra && (
-                          <div className="mt-1 flex gap-2">
-                            <div className="flex-1">
-                              <label className="block text-[10px] text-gray-500 font-medium">Prix unitaire (€)</label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={visaKsaAmount}
-                                onChange={(e) => setVisaKsaAmount(e.target.value)}
-                                placeholder="135.00"
-                                className="w-full px-2 py-1 text-sm border rounded-md"
-                                required
-                              />
+                          <>
+                            <div className="mt-1 flex gap-2">
+                              <div className="flex-1">
+                                <label className="block text-[10px] text-gray-500 font-medium">Prix unitaire (€)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={visaKsaAmount}
+                                  onChange={(e) => setVisaKsaAmount(e.target.value)}
+                                  placeholder="135.00"
+                                  className="w-full px-2 py-1 text-sm border rounded-md"
+                                  required
+                                />
+                              </div>
+                              <div className="w-16">
+                                <label className="block text-[10px] text-gray-500 font-medium">Qté</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  step="1"
+                                  value={visaKsaQuantity}
+                                  onChange={(e) => setVisaKsaQuantity(e.target.value)}
+                                  placeholder="1"
+                                  className="w-full px-2 py-1 text-sm border rounded-md"
+                                  required
+                                />
+                              </div>
                             </div>
-                            <div className="w-16">
-                              <label className="block text-[10px] text-gray-500 font-medium">Qté</label>
-                              <input
-                                type="number"
-                                min="1"
-                                step="1"
-                                value={visaKsaQuantity}
-                                onChange={(e) => setVisaKsaQuantity(e.target.value)}
-                                placeholder="1"
-                                className="w-full px-2 py-1 text-sm border rounded-md"
-                                required
-                              />
+                            <div className="mt-2 border-t pt-2 space-y-1">
+                              <label className="block text-[10px] text-gray-500 font-medium">Remise Visa</label>
+                              <div className="flex gap-1">
+                                <select
+                                  value={visaKsaDiscountType}
+                                  onChange={(e) => setVisaKsaDiscountType(e.target.value)}
+                                  className="text-[10px] px-1 py-1 border rounded-md"
+                                >
+                                  <option value="none">Sans</option>
+                                  <option value="percentage">%</option>
+                                  <option value="amount">Montant</option>
+                                </select>
+                                {visaKsaDiscountType !== "none" && (
+                                  <>
+                                    <input
+                                      type="number"
+                                      placeholder="Val"
+                                      value={visaKsaDiscountValue}
+                                      onChange={(e) => setVisaKsaDiscountValue(e.target.value)}
+                                      className="w-12 text-[10px] px-1 py-1 border rounded-md"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Désignation"
+                                      value={visaKsaDiscountName}
+                                      onChange={(e) => setVisaKsaDiscountName(e.target.value)}
+                                      className="flex-1 text-[10px] px-1 py-1 border rounded-md"
+                                    />
+                                  </>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          </>
                         )}
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Type de chambre</label>
-                        <select
-                          value={roomType}
-                          onChange={(e) => setRoomType(e.target.value)}
-                          className="w-full px-3 py-2 border rounded-md"
-                        >
-                          {roomTypes.map((type) => (
-                            <option key={type.value} value={type.value}>
-                              {type.label} (+{type.supplement.toFixed(2)} €)
-                            </option>
-                          ))}
-                        </select>
+                      <div className="flex flex-col gap-2 rounded-md border border-gray-200 px-3 py-2">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Type de chambre</label>
+                          <select
+                            value={roomType}
+                            onChange={(e) => setRoomType(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-md text-sm"
+                          >
+                            {roomTypes.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label} (+{type.supplement.toFixed(2)} €)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="mt-1 border-t pt-1 space-y-1">
+                          <label className="block text-[10px] text-gray-500 font-medium">Remise chambre</label>
+                          <div className="flex gap-1">
+                            <select
+                              value={roomDiscountType}
+                              onChange={(e) => setRoomDiscountType(e.target.value)}
+                              className="text-[10px] px-1 py-1 border rounded-md"
+                            >
+                              <option value="none">Sans</option>
+                              <option value="percentage">%</option>
+                              <option value="amount">Montant</option>
+                            </select>
+                            {roomDiscountType !== "none" && (
+                              <>
+                                <input
+                                  type="number"
+                                  placeholder="Val"
+                                  value={roomDiscountValue}
+                                  onChange={(e) => setRoomDiscountValue(e.target.value)}
+                                  className="w-12 text-[10px] px-1 py-1 border rounded-md"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Désignation"
+                                  value={roomDiscountName}
+                                  onChange={(e) => setRoomDiscountName(e.target.value)}
+                                  className="flex-1 text-[10px] px-1 py-1 border rounded-md"
+                                />
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <label className="flex min-h-11 items-center gap-3 rounded-md border border-gray-200 px-3 py-2 text-sm font-medium sm:mt-0">
                         <input
@@ -781,6 +1029,50 @@ export default function EditInvoicePage({
                               required
                             />
                           </div>
+                          <div className="w-full sm:w-48">
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Remise produit</label>
+                            <div className="flex gap-1">
+                              <select
+                                value={product.discountType || "none"}
+                                onChange={(e) => {
+                                  const newProducts = [...customProducts]
+                                  newProducts[index].discountType = e.target.value
+                                  setCustomProducts(newProducts)
+                                }}
+                                className="text-xs px-2 py-2 border rounded-md"
+                              >
+                                <option value="none">Sans</option>
+                                <option value="percentage">%</option>
+                                <option value="amount">Montant</option>
+                              </select>
+                              {product.discountType && product.discountType !== "none" && (
+                                <>
+                                  <input
+                                    type="number"
+                                    placeholder="Val"
+                                    value={product.discountValue || ""}
+                                    onChange={(e) => {
+                                      const newProducts = [...customProducts]
+                                      newProducts[index].discountValue = e.target.value
+                                      setCustomProducts(newProducts)
+                                    }}
+                                    className="w-12 text-xs px-1 py-2 border rounded-md"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Nom"
+                                    value={product.discountName || ""}
+                                    onChange={(e) => {
+                                      const newProducts = [...customProducts]
+                                      newProducts[index].discountName = e.target.value
+                                      setCustomProducts(newProducts)
+                                    }}
+                                    className="w-16 text-xs px-1 py-2 border rounded-md"
+                                  />
+                                </>
+                              )}
+                            </div>
+                          </div>
                           <div className="flex items-end h-full sm:pt-5">
                             <button
                               type="button"
@@ -858,54 +1150,131 @@ export default function EditInvoicePage({
                       />
                     </div>
                   )}
+
+                  <div className="mt-4 border-t pt-4">
+                    <h4 className="font-semibold mb-2 text-sm text-slate-800">Remise globale sur la facture</h4>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Type de remise</label>
+                        <select
+                          value={discountType}
+                          onChange={(e) => setDiscountType(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md text-sm"
+                        >
+                          <option value="none">Aucune</option>
+                          <option value="percentage">Pourcentage %</option>
+                          <option value="amount">Montant fixe €</option>
+                        </select>
+                      </div>
+                      {discountType !== "none" && (
+                        <>
+                          <div>
+                            <label className="block text-xs font-medium mb-1">Valeur de la remise</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={discountValue}
+                              onChange={(e) => setDiscountValue(e.target.value)}
+                              placeholder="0.00"
+                              className="w-full px-3 py-2 border rounded-md text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium mb-1">Dénomination de la remise</label>
+                            <input
+                              type="text"
+                              value={discountName}
+                              onChange={(e) => setDiscountName(e.target.value)}
+                              placeholder="Ex: Geste commercial"
+                              className="w-full px-3 py-2 border rounded-md text-sm"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   {amountHT && (
-                    <div className="mt-4 rounded-md bg-gray-50 p-4">
-                      <div className="flex justify-between gap-4 text-sm">
+                    <div className="mt-4 rounded-md bg-gray-50 p-4 space-y-1.5">
+                      <div className="flex justify-between gap-4 text-sm text-slate-600">
                         <span>Quantité</span>
                         <span>{quantityValue}</span>
                       </div>
-                      <div className="flex justify-between gap-4 text-sm">
+                      <div className="flex justify-between gap-4 text-sm text-slate-600">
                         <span>Prix unitaire HT hors chambre</span>
                         <span>{baseUnitPriceHT.toFixed(2)} €</span>
                       </div>
-                      <div className="flex justify-between gap-4 text-sm">
-                        <span>Supplément chambre</span>
-                        <span>+{roomSupplement.toFixed(2)} €</span>
-                      </div>
-                      <div className="flex justify-between gap-4 text-sm">
-                        <span>Petit déjeuner ({stayDays} jour{stayDays > 1 ? "s" : ""})</span>
-                        <span>+{breakfastSupplement.toFixed(2)} €</span>
-                      </div>
-                      {includeVisaKsaExtra && (
-                        <div className="flex justify-between gap-4 text-sm">
-                          <span>Supplément visa KSA</span>
-                          <span>+{visaKsaVal.toFixed(2)} €</span>
+                      
+                      {roomSupplement > 0 && (
+                        <div className="flex justify-between gap-4 text-sm text-slate-600">
+                          <span>Supplément chambre ({roomType})</span>
+                          {discountedRoomSupplement !== roomSupplement ? (
+                            <span>
+                              <span className="line-through text-xs text-gray-400 mr-1">+{roomSupplement.toFixed(2)} €</span>
+                              +{discountedRoomSupplement.toFixed(2)} €
+                            </span>
+                          ) : (
+                            <span>+{roomSupplement.toFixed(2)} €</span>
+                          )}
                         </div>
                       )}
-                      <div className="flex justify-between gap-4 text-sm border-t pt-1 mt-1 font-medium">
+                      
+                      {includeBreakfast && (
+                        <div className="flex justify-between gap-4 text-sm text-slate-600">
+                          <span>Petit déjeuner ({stayDays} jour{stayDays > 1 ? "s" : ""})</span>
+                          <span>+{breakfastSupplement.toFixed(2)} €</span>
+                        </div>
+                      )}
+                      
+                      {includeVisaKsaExtra && (
+                        <div className="flex justify-between gap-4 text-sm text-slate-600">
+                          <span>Supplément visa KSA</span>
+                          {discountedVisaKsaVal !== visaKsaVal ? (
+                            <span>
+                              <span className="line-through text-xs text-gray-400 mr-1">+{visaKsaVal.toFixed(2)} €</span>
+                              +{discountedVisaKsaVal.toFixed(2)} €
+                            </span>
+                          ) : (
+                            <span>+{visaKsaVal.toFixed(2)} €</span>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between gap-4 text-sm border-t pt-1 mt-1 font-medium text-slate-700">
                         <span>Prix unitaire HT total</span>
                         <span>{packageUnitPriceHT.toFixed(2)} €</span>
                       </div>
-                      <div className="flex justify-between gap-4 text-sm">
+                      <div className="flex justify-between gap-4 text-sm text-slate-600">
                         <span>Total package HT</span>
                         <span>{(quantityValue * packageUnitPriceHT).toFixed(2)} €</span>
                       </div>
+                      
                       {customProducts.length > 0 && (
-                        <div className="flex justify-between gap-4 text-sm">
+                        <div className="flex justify-between gap-4 text-sm text-slate-600">
                           <span>Total produits additionnels HT</span>
                           <span>{customProductsTotal.toFixed(2)} €</span>
                         </div>
                       )}
-                      <div className="flex justify-between gap-4 text-sm border-t pt-1 mt-1 font-semibold">
-                        <span>Total HT</span>
-                        <span>{totalHT.toFixed(2)} €</span>
-                      </div>
-                      <div className="flex justify-between gap-4 text-sm text-gray-500">
-                        <span>TVA (0%)</span>
-                        <span>0.00 €</span>
-                      </div>
-                      <div className="mt-2 flex justify-between gap-4 border-t pt-2 font-bold text-lg">
-                        <span>Total à payer</span>
+                      
+                      {discountType !== "none" && (
+                        <div className="flex justify-between gap-4 text-sm border-t pt-1 text-slate-500">
+                          <span>Total brut HT</span>
+                          <span>{totalHTBeforeGlobalDiscount.toFixed(2)} €</span>
+                        </div>
+                      )}
+
+                      {discountType !== "none" && globalDiscountAmount > 0 && (
+                        <div className="flex justify-between gap-4 text-sm text-red-600 font-medium">
+                          <span>
+                            {discountName ? `Remise globale : ${discountName}` : "Remise globale"} 
+                            {discountType === "percentage" ? ` (-${discountValue}%)` : ""}
+                          </span>
+                          <span>-{globalDiscountAmount.toFixed(2)} €</span>
+                        </div>
+                      )}
+                      
+                      <div className="mt-2 flex justify-between gap-4 border-t pt-2 font-bold text-lg text-slate-900">
+                        <span>Montant total à payer</span>
                         <span>{totalHT.toFixed(2)} €</span>
                       </div>
                     </div>

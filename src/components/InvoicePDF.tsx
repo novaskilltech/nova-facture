@@ -125,10 +125,9 @@ const styles = StyleSheet.create({
   tableRowAlt: {
     backgroundColor: "#f9fafb",
   },
-  col1: { width: "45%" },
+  col1: { width: "60%" },
   col2: { width: "15%", textAlign: "right" as const },
-  col3: { width: "20%", textAlign: "right" as const },
-  col4: { width: "20%", textAlign: "right" as const },
+  col3: { width: "25%", textAlign: "right" as const },
   totals: {
     marginTop: 20,
     alignItems: "flex-end",
@@ -207,6 +206,9 @@ export interface InvoicePDFProps {
     tvaRate: number
     tvaAmount: number
     totalTTC: number
+    discountType?: string | null
+    discountValue?: number | null
+    discountName?: string | null
     paymentMethod: string
     paymentLink?: string | null
     notes?: string | null
@@ -259,6 +261,26 @@ export function InvoicePDF({ invoice, logoSrc }: InvoicePDFProps) {
   }
 
   const showBankInfo = invoice.paymentMethod === "virement"
+
+  const discountType = invoice.discountType || "none"
+  const discountValue = invoice.discountValue || 0
+  const discountName = invoice.discountName || ""
+
+  let totalBrut = invoice.amountHT
+  let discountAmount = 0
+
+  if (discountType === "percentage" && discountValue > 0) {
+    if (discountValue < 100) {
+      totalBrut = invoice.amountHT / (1 - discountValue / 100)
+      discountAmount = totalBrut - invoice.amountHT
+    } else {
+      totalBrut = 0
+      discountAmount = 0
+    }
+  } else if (discountType === "amount" && discountValue > 0) {
+    totalBrut = invoice.amountHT + discountValue
+    discountAmount = discountValue
+  }
 
   return (
     <Document>
@@ -338,30 +360,40 @@ export function InvoicePDF({ invoice, logoSrc }: InvoicePDFProps) {
               <Text style={styles.col1}>Description</Text>
               <Text style={styles.col2}>Qté</Text>
               <Text style={styles.col3}>Montant HT</Text>
-              <Text style={styles.col4}>TVA</Text>
             </View>
             <View style={[styles.tableRow, styles.tableRowAlt]}>
               <Text style={styles.col1}>{invoice.description}</Text>
               <Text style={styles.col2}>{invoice.quantity}</Text>
-              <Text style={styles.col3}>{invoice.amountHT.toFixed(2)} €</Text>
-              <Text style={styles.col4}>0.00 €</Text>
+              <Text style={styles.col3}>{totalBrut.toFixed(2)} €</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.totals}>
-          <View style={styles.totalRow}>
-            <Text>Total HT</Text>
-            <Text>{invoice.amountHT.toFixed(2)} €</Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text>TVA (0%)</Text>
-            <Text>0.00 €</Text>
-          </View>
-          <View style={[styles.totalRow, styles.totalRowBold]}>
-            <Text>Total à payer</Text>
-            <Text>{invoice.totalTTC.toFixed(2)} €</Text>
-          </View>
+          {discountType !== "none" && discountAmount > 0 ? (
+            <>
+              <View style={styles.totalRow}>
+                <Text>Total Brut HT</Text>
+                <Text>{totalBrut.toFixed(2)} €</Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text>
+                  {discountName ? `Remise : ${discountName}` : "Remise"} 
+                  {discountType === "percentage" ? ` (-${discountValue}%)` : ""}
+                </Text>
+                <Text>-{discountAmount.toFixed(2)} €</Text>
+              </View>
+              <View style={[styles.totalRow, styles.totalRowBold]}>
+                <Text>Total Net HT</Text>
+                <Text>{invoice.amountHT.toFixed(2)} €</Text>
+              </View>
+            </>
+          ) : (
+            <View style={[styles.totalRow, styles.totalRowBold]}>
+              <Text>Total à payer</Text>
+              <Text>{invoice.amountHT.toFixed(2)} €</Text>
+            </View>
+          )}
         </View>
 
         <Text style={styles.tvaMention}>{entity.tvaMention}</Text>

@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider = "sqlite"
   url       = env("DATABASE_URL")
-  // // // // // // // // // directUrl = env("DIRECT_URL")
+  // // // // // // // // // // // directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -81,6 +81,9 @@ model Invoice {
   notes         String?
   entityId      String
   clientId      String
+  discountType  String    @default("none")
+  discountValue Float     @default(0)
+  discountName  String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   emittedAt     DateTime?
