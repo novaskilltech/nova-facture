@@ -12,10 +12,23 @@ export function InvoicePDFDownloadButton({
   invoice,
   fileName,
 }: InvoicePDFDownloadButtonProps) {
+  const getLogoPath = (entityId?: string) => {
+    switch (entityId) {
+      case "entity-conciergerie":
+        return "/conciergerie-logo.jpg"
+      case "entity-horizon-services":
+        return "/horizon-services-logo.png"
+      default:
+        return "/horizon-solutions-logo.jpg"
+    }
+  }
+
+  const logoPath = getLogoPath(invoice.entity.id)
+
   const logoSrc =
     typeof window === "undefined"
-      ? "/horizon-solutions-logo.jpg"
-      : new URL("/horizon-solutions-logo.jpg", window.location.origin).toString()
+      ? logoPath
+      : new URL(logoPath, window.location.origin).toString()
 
   return (
     <PDFDownloadLink

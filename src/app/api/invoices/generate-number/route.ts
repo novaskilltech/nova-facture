@@ -11,6 +11,10 @@ function getEntityCode(entity: { id: string; commercialName: string; legalName: 
     return "LC"
   }
 
+  if (entity.id === "entity-horizon-services" || normalizedName.includes("services")) {
+    return "HZ"
+  }
+
   if (entity.id === "entity-horizon" || normalizedName.includes("horizon")) {
     return "HS"
   }

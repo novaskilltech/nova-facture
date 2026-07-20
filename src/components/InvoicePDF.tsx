@@ -213,6 +213,7 @@ export interface InvoicePDFProps {
     paymentLink?: string | null
     notes?: string | null
     entity: {
+      id?: string
       legalName: string
       commercialName: string
       legalForm: string

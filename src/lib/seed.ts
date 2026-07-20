@@ -21,7 +21,9 @@ async function main() {
 
   await prisma.entity.upsert({
     where: { id: "entity-conciergerie" },
-    update: {},
+    update: {
+      logoPath: "/conciergerie-logo.jpg",
+    },
     create: {
       id: "entity-conciergerie",
       legalName: "LA CONCIERGERIE",
@@ -39,12 +41,15 @@ async function main() {
       bankBic: "SFPEFRP2",
       bankHolder: "LA CONCIERGERIE",
       paymentMethods: "virement,especes",
+      logoPath: "/conciergerie-logo.jpg",
     },
   })
 
   await prisma.entity.upsert({
     where: { id: "entity-horizon" },
-    update: {},
+    update: {
+      logoPath: "/horizon-solutions-logo.jpg",
+    },
     create: {
       id: "entity-horizon",
       legalName: "LAMKHANNET Salah Edine Ahmed",
@@ -62,6 +67,33 @@ async function main() {
       bankBic: "REVOFRP2",
       bankHolder: "SALAH EDINE AHMED LAMKHANNET",
       paymentMethods: "virement,especes,cb-stripe,cb-revolut",
+      logoPath: "/horizon-solutions-logo.jpg",
+    },
+  })
+
+  await prisma.entity.upsert({
+    where: { id: "entity-horizon-services" },
+    update: {
+      logoPath: "/horizon-services-logo.png",
+    },
+    create: {
+      id: "entity-horizon-services",
+      legalName: "LAMKHANNET Yasmine Habiba Saadia",
+      commercialName: "HORIZON SERVICES",
+      legalForm: "Entreprise individuelle",
+      siren: "940974231",
+      siret: "94097423100018",
+      apeCode: "7990Z",
+      address: "98 Avenue Claude Péroche",
+      postalCode: "60180",
+      city: "Nogent-sur-Oise",
+      tvaMention: "TVA non applicable - article 293 B du CGI",
+      bankName: "Revolut",
+      bankIban: "FR76 2823 3000 0187 0446 1681 147",
+      bankBic: "REVOFR2DXXX",
+      bankHolder: "YASMINE LAMKHANNET",
+      paymentMethods: "virement,especes,cb-stripe,cb-revolut",
+      logoPath: "/horizon-services-logo.png",
     },
   })
 
