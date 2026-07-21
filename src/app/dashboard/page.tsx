@@ -8,15 +8,16 @@ import { Prisma } from "@prisma/client"
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sortBy?: string; sortOrder?: string; status?: string }>
+  searchParams: Promise<{ sortBy?: string; sortOrder?: string; status?: string; page?: string }>
 }) {
   await requireAuth()
 
-  const { sortBy, sortOrder, status } = await searchParams
+  const { sortBy, sortOrder, status, page: pageParam } = await searchParams
 
   const orderField = sortBy || "createdAt"
   const orderDirection = sortOrder === "asc" ? "asc" : "desc"
   const filterStatus = status || "all"
+  const currentPage = Number(pageParam) || 1
 
   let orderByInput: Prisma.InvoiceOrderByWithRelationInput | Prisma.InvoiceOrderByWithRelationInput[] = { createdAt: "desc" }
   if (orderField === "number") {
@@ -54,9 +55,34 @@ export default async function DashboardPage({
       .reduce((sum, i) => sum + i.totalTTC, 0),
   }
 
-  const invoices = filterStatus === "all"
-    ? allInvoices.slice(0, 20)
-    : allInvoices.filter((i) => i.status === filterStatus).slice(0, 20)
+  const filteredInvoices = filterStatus === "all"
+    ? allInvoices
+    : allInvoices.filter((i) => i.status === filterStatus)
+
+  const limit = 20
+  const totalInvoices = filteredInvoices.length
+  const totalPages = Math.ceil(totalInvoices / limit) || 1
+  const page = Math.min(Math.max(1, currentPage), totalPages)
+  const skip = (page - 1) * limit
+  const invoices = filteredInvoices.slice(skip, skip + limit)
+
+  const buildUrl = (newParams: Record<string, string | number | undefined | null>) => {
+    const params = new URLSearchParams()
+    if (sortBy) params.set("sortBy", sortBy)
+    if (sortOrder) params.set("sortOrder", sortOrder)
+    if (status && status !== "all") params.set("status", status)
+    if (page > 1) params.set("page", String(page))
+
+    for (const [key, value] of Object.entries(newParams)) {
+      if (value === undefined || value === null) {
+        params.delete(key)
+      } else {
+        params.set(key, String(value))
+      }
+    }
+    const queryStr = params.toString()
+    return queryStr ? `/dashboard?${queryStr}` : "/dashboard"
+  }
 
   const paidPercentage = stats.totalAmount > 0 
     ? (stats.paidAmount / stats.totalAmount) * 100 
@@ -194,13 +220,13 @@ export default async function DashboardPage({
           
           <div className="p-4 md:hidden flex flex-wrap items-center gap-2 bg-slate-50/50 border-b border-slate-100 text-xs text-slate-500">
             <span className="font-semibold mr-1">Trier :</span>
-            <Link href={`/dashboard?sortBy=date&sortOrder=${orderField === 'date' && orderDirection === 'desc' ? 'asc' : 'desc'}`} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'date' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
+            <Link href={buildUrl({ sortBy: "date", sortOrder: orderField === 'date' && orderDirection === 'desc' ? 'asc' : 'desc', page: 1 })} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'date' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
               Date {orderField === 'date' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
             </Link>
-            <Link href={`/dashboard?sortBy=totalTTC&sortOrder=${orderField === 'totalTTC' && orderDirection === 'desc' ? 'asc' : 'desc'}`} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'totalTTC' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
+            <Link href={buildUrl({ sortBy: "totalTTC", sortOrder: orderField === 'totalTTC' && orderDirection === 'desc' ? 'asc' : 'desc', page: 1 })} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'totalTTC' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
               Montant {orderField === 'totalTTC' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
             </Link>
-            <Link href={`/dashboard?sortBy=number&sortOrder=${orderField === 'number' && orderDirection === 'desc' ? 'asc' : 'desc'}`} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'number' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
+            <Link href={buildUrl({ sortBy: "number", sortOrder: orderField === 'number' && orderDirection === 'desc' ? 'asc' : 'desc', page: 1 })} className={`px-2.5 py-1 rounded-md bg-white border shadow-sm ${orderField === 'number' ? 'text-blue-600 border-blue-200 bg-blue-50/20 font-bold' : 'border-slate-200'}`}>
               Numéro {orderField === 'number' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
             </Link>
           </div>
@@ -210,24 +236,24 @@ export default async function DashboardPage({
               <thead>
                 <tr className="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50">
                   <th className="p-4 pl-6">
-                    <Link href={`/dashboard?sortBy=number&sortOrder=${orderField === 'number' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 select-none">
+                    <Link href={buildUrl({ sortBy: "number", sortOrder: orderField === 'number' && orderDirection === 'asc' ? 'desc' : 'asc', page: 1 })} className="hover:underline flex items-center gap-1 select-none">
                       Numéro {orderField === 'number' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
                     </Link>
                   </th>
                   <th className="p-4">Société Émettrice</th>
                   <th className="p-4">Client / Payeur</th>
                   <th className="p-4">
-                    <Link href={`/dashboard?sortBy=date&sortOrder=${orderField === 'date' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 select-none">
+                    <Link href={buildUrl({ sortBy: "date", sortOrder: orderField === 'date' && orderDirection === 'asc' ? 'desc' : 'asc', page: 1 })} className="hover:underline flex items-center gap-1 select-none">
                       Date de Facture {orderField === 'date' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
                     </Link>
                   </th>
                   <th className="p-4 text-right">
-                    <Link href={`/dashboard?sortBy=totalTTC&sortOrder=${orderField === 'totalTTC' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 justify-end select-none">
+                    <Link href={buildUrl({ sortBy: "totalTTC", sortOrder: orderField === 'totalTTC' && orderDirection === 'asc' ? 'desc' : 'asc', page: 1 })} className="hover:underline flex items-center gap-1 justify-end select-none">
                       Montant TTC {orderField === 'totalTTC' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
                     </Link>
                   </th>
                   <th className="p-4 text-center">
-                    <Link href={`/dashboard?sortBy=status&sortOrder=${orderField === 'status' && orderDirection === 'asc' ? 'desc' : 'asc'}`} className="hover:underline flex items-center gap-1 justify-center select-none">
+                    <Link href={buildUrl({ sortBy: "status", sortOrder: orderField === 'status' && orderDirection === 'asc' ? 'desc' : 'asc', page: 1 })} className="hover:underline flex items-center gap-1 justify-center select-none">
                       Statut {orderField === 'status' ? (orderDirection === 'asc' ? '▲' : '▼') : ''}
                     </Link>
                   </th>
@@ -312,6 +338,54 @@ export default async function DashboardPage({
               ))
             )}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-slate-100 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-slate-50/30">
+              <p className="text-xs font-semibold text-slate-500 text-center sm:text-left">
+                Affichage de <span className="text-slate-900 font-bold">{skip + 1}</span> à{" "}
+                <span className="text-slate-900 font-bold">{Math.min(skip + limit, totalInvoices)}</span> sur{" "}
+                <span className="text-slate-900 font-bold">{totalInvoices}</span> factures
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                {page > 1 ? (
+                  <Link
+                    href={buildUrl({ page: page - 1 })}
+                    className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-premium transition-premium hover:bg-slate-50 cursor-pointer"
+                  >
+                    ◀ Précédent
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    className="rounded-xl border border-slate-100 bg-slate-50/50 px-3.5 py-2 text-xs font-bold text-slate-400 cursor-not-allowed opacity-50"
+                  >
+                    ◀ Précédent
+                  </button>
+                )}
+
+                <span className="text-xs font-bold text-slate-600 px-2 select-none">
+                  Page {page} sur {totalPages}
+                </span>
+
+                {page < totalPages ? (
+                  <Link
+                    href={buildUrl({ page: page + 1 })}
+                    className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-premium transition-premium hover:bg-slate-50 cursor-pointer"
+                  >
+                    Suivant ▶
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    className="rounded-xl border border-slate-100 bg-slate-50/50 px-3.5 py-2 text-xs font-bold text-slate-400 cursor-not-allowed opacity-50"
+                  >
+                    Suivant ▶
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

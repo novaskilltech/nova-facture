@@ -13,6 +13,7 @@ export function StatusFilter({ currentStatus }: { currentStatus: string }) {
     } else {
       params.set("status", e.target.value)
     }
+    params.delete("page")
     router.push(`/dashboard?${params.toString()}`)
   }
 
