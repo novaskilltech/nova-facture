@@ -5,19 +5,28 @@ import { AppHeader } from "@/components/AppHeader"
 import { StatusFilter } from "@/components/StatusFilter"
 import { Prisma } from "@prisma/client"
 
+import { EntityFilter } from "@/components/EntityFilter"
+
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sortBy?: string; sortOrder?: string; status?: string; page?: string }>
+  searchParams: Promise<{ sortBy?: string; sortOrder?: string; status?: string; entityId?: string; page?: string }>
 }) {
   await requireAuth()
 
-  const { sortBy, sortOrder, status, page: pageParam } = await searchParams
+  const { sortBy, sortOrder, status, entityId, page: pageParam } = await searchParams
 
   const orderField = sortBy || "createdAt"
   const orderDirection = sortOrder === "asc" ? "asc" : "desc"
   const filterStatus = status || "all"
+  const filterEntityId = entityId || "all"
   const currentPage = Number(pageParam) || 1
+
+  const activeEntities = await prisma.entity.findMany({
+    where: { isActive: true },
+    select: { id: true, commercialName: true },
+    orderBy: { commercialName: "asc" },
+  })
 
   let orderByInput: Prisma.InvoiceOrderByWithRelationInput | Prisma.InvoiceOrderByWithRelationInput[] = { createdAt: "desc" }
   if (orderField === "number") {
@@ -37,27 +46,31 @@ export default async function DashboardPage({
     orderBy: orderByInput,
   })
 
+  const entityFilteredInvoices = filterEntityId === "all"
+    ? allInvoices
+    : allInvoices.filter((i) => i.entityId === filterEntityId)
+
   const stats = {
-    total: allInvoices.length,
-    draft: allInvoices.filter((i) => i.status === "draft").length,
-    emitted: allInvoices.filter((i) => i.status === "emitted").length,
-    paid: allInvoices.filter((i) => i.status === "paid").length,
-    late: allInvoices.filter((i) => i.status === "late").length,
-    cancelled: allInvoices.filter((i) => i.status === "cancelled").length,
-    totalAmount: allInvoices
+    total: entityFilteredInvoices.length,
+    draft: entityFilteredInvoices.filter((i) => i.status === "draft").length,
+    emitted: entityFilteredInvoices.filter((i) => i.status === "emitted").length,
+    paid: entityFilteredInvoices.filter((i) => i.status === "paid").length,
+    late: entityFilteredInvoices.filter((i) => i.status === "late").length,
+    cancelled: entityFilteredInvoices.filter((i) => i.status === "cancelled").length,
+    totalAmount: entityFilteredInvoices
       .filter((i) => i.status !== "cancelled")
       .reduce((sum, i) => sum + i.totalTTC, 0),
-    paidAmount: allInvoices
+    paidAmount: entityFilteredInvoices
       .filter((i) => i.status === "paid")
       .reduce((sum, i) => sum + i.totalTTC, 0),
-    pendingAmount: allInvoices
+    pendingAmount: entityFilteredInvoices
       .filter((i) => i.status === "emitted" || i.status === "late")
       .reduce((sum, i) => sum + i.totalTTC, 0),
   }
 
   const filteredInvoices = filterStatus === "all"
-    ? allInvoices
-    : allInvoices.filter((i) => i.status === filterStatus)
+    ? entityFilteredInvoices
+    : entityFilteredInvoices.filter((i) => i.status === filterStatus)
 
   const limit = 20
   const totalInvoices = filteredInvoices.length
@@ -66,11 +79,14 @@ export default async function DashboardPage({
   const skip = (page - 1) * limit
   const invoices = filteredInvoices.slice(skip, skip + limit)
 
+  const selectedEntity = activeEntities.find((e) => e.id === filterEntityId)
+
   const buildUrl = (newParams: Record<string, string | number | undefined | null>) => {
     const params = new URLSearchParams()
     if (sortBy) params.set("sortBy", sortBy)
     if (sortOrder) params.set("sortOrder", sortOrder)
     if (status && status !== "all") params.set("status", status)
+    if (entityId && entityId !== "all") params.set("entityId", entityId)
     if (page > 1) params.set("page", String(page))
 
     for (const [key, value] of Object.entries(newParams)) {
@@ -170,9 +186,13 @@ export default async function DashboardPage({
         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-premium mb-8 sm:p-8 sm:mb-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-1">
-              <h2 className="text-lg font-bold text-slate-900">Flux de Trésorerie Global</h2>
+              <h2 className="text-lg font-bold text-slate-900">
+                Flux de Trésorerie {selectedEntity ? `— ${selectedEntity.commercialName}` : "Global"}
+              </h2>
               <p className="text-sm text-slate-400">
-                Visualisation des encaissements sur le volume de facturation non annulé.
+                {selectedEntity
+                  ? `Visualisation des encaissements pour ${selectedEntity.commercialName}.`
+                  : "Visualisation des encaissements sur le volume de facturation non annulé."}
               </p>
             </div>
             
@@ -208,9 +228,10 @@ export default async function DashboardPage({
 
         {/* Tableau des Factures Épuré */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-premium overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-3 sm:p-6">
-            <div className="flex items-center gap-3 sm:gap-4">
+          <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 sm:p-6">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
               <h2 className="text-lg font-bold text-slate-900">Dernières Factures</h2>
+              <EntityFilter entities={activeEntities} currentEntityId={filterEntityId} />
               <StatusFilter currentStatus={filterStatus} />
             </div>
             <Link href="/invoices/new" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-premium">
