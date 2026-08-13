@@ -137,6 +137,11 @@ function buildProductDescription({
   customProducts,
   showTravelers,
   travelerNames,
+  showCityDates,
+  medinaStart,
+  medinaEnd,
+  meccaStart,
+  meccaEnd,
 }: {
   periodStart: string
   periodEnd: string
@@ -156,6 +161,11 @@ function buildProductDescription({
   customProducts: CustomProduct[]
   showTravelers?: boolean
   travelerNames?: string[]
+  showCityDates?: boolean
+  medinaStart?: string
+  medinaEnd?: string
+  meccaStart?: string
+  meccaEnd?: string
 }) {
   const stayPeriod = periodStart && periodEnd
     ? `du ${formatStayDate(periodStart)} au ${formatStayDate(periodEnd)}`
@@ -194,6 +204,15 @@ function buildProductDescription({
     `Supplément chambre: +${roomSupplement.toFixed(2)} €${roomDiscStr}`,
     `Petit déjeuner: ${breakfastLabel}`,
   ]
+
+  if (showCityDates) {
+    if (medinaStart && medinaEnd) {
+      lines.push(`Hébergement Médine: du ${formatStayDate(medinaStart)} au ${formatStayDate(medinaEnd)}`)
+    }
+    if (meccaStart && meccaEnd) {
+      lines.push(`Hébergement La Mecque: du ${formatStayDate(meccaStart)} au ${formatStayDate(meccaEnd)}`)
+    }
+  }
 
   if (showTravelers && travelerNames && travelerNames.length > 0) {
     const validNames = travelerNames.filter(name => name.trim() !== "")
@@ -234,6 +253,11 @@ function parseInvoiceDescription(description: string) {
     customProducts: [] as CustomProduct[],
     showTravelers: false,
     travelerNames: [] as string[],
+    showCityDates: false,
+    medinaStart: "",
+    medinaEnd: "",
+    meccaStart: "",
+    meccaEnd: "",
   }
 
   if (!description) return result
@@ -282,6 +306,30 @@ function parseInvoiceDescription(description: string) {
     result.includeBreakfast = true
   } else if (description.includes("Petit déjeuner: non inclus")) {
     result.includeBreakfast = false
+  }
+
+  // Parse Medina Dates
+  const medinaMatch = description.match(/Hébergement Médine:\s*du\s*(\d{2}\/\d{2}\/\d{4})\s*au\s*(\d{2}\/\d{2}\/\d{4})/)
+  if (medinaMatch) {
+    result.showCityDates = true
+    const parseFRDate = (str: string) => {
+      const [d, m, y] = str.split("/")
+      return `${y}-${m}-${d}`
+    }
+    result.medinaStart = parseFRDate(medinaMatch[1])
+    result.medinaEnd = parseFRDate(medinaMatch[2])
+  }
+
+  // Parse Mecca Dates
+  const meccaMatch = description.match(/Hébergement La Mecque:\s*du\s*(\d{2}\/\d{2}\/\d{4})\s*au\s*(\d{2}\/\d{2}\/\d{4})/)
+  if (meccaMatch) {
+    result.showCityDates = true
+    const parseFRDate = (str: string) => {
+      const [d, m, y] = str.split("/")
+      return `${y}-${m}-${d}`
+    }
+    result.meccaStart = parseFRDate(meccaMatch[1])
+    result.meccaEnd = parseFRDate(meccaMatch[2])
   }
 
   const travelersMatch = description.match(/Voyageurs:\s*([^\r\n]+)/)
@@ -359,6 +407,12 @@ export default function EditInvoicePage({
 
   const [showTravelers, setShowTravelers] = useState(false)
   const [travelerNames, setTravelerNames] = useState<string[]>([])
+
+  const [showCityDates, setShowCityDates] = useState(false)
+  const [medinaStart, setMedinaStart] = useState("")
+  const [medinaEnd, setMedinaEnd] = useState("")
+  const [meccaStart, setMeccaStart] = useState("")
+  const [meccaEnd, setMeccaEnd] = useState("")
 
   const [visaKsaDiscountType, setVisaKsaDiscountType] = useState("none")
   const [visaKsaDiscountValue, setVisaKsaDiscountValue] = useState("")
@@ -439,6 +493,11 @@ export default function EditInvoicePage({
       setCustomProducts(parsed.customProducts)
       setShowTravelers(parsed.showTravelers)
       setTravelerNames(parsed.travelerNames)
+      setShowCityDates(parsed.showCityDates || false)
+      setMedinaStart(parsed.medinaStart || "")
+      setMedinaEnd(parsed.medinaEnd || "")
+      setMeccaStart(parsed.meccaStart || "")
+      setMeccaEnd(parsed.meccaEnd || "")
 
       setDiscountType(invoiceData.discountType || "none")
       setDiscountValue(invoiceData.discountValue ? invoiceData.discountValue.toString() : "")
@@ -521,6 +580,11 @@ export default function EditInvoicePage({
         customProducts,
         showTravelers,
         travelerNames,
+        showCityDates,
+        medinaStart,
+        medinaEnd,
+        meccaStart,
+        meccaEnd,
       })
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDescription(generated)
@@ -545,6 +609,11 @@ export default function EditInvoicePage({
     customProducts,
     showTravelers,
     travelerNames,
+    showCityDates,
+    medinaStart,
+    medinaEnd,
+    meccaStart,
+    meccaEnd,
   ])
 
   const entity = entities.find((e) => e.id === selectedEntity)
@@ -801,17 +870,80 @@ export default function EditInvoicePage({
                       </select>
                     </div>
                     <div className="flex items-end pb-1.5">
-                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={showTravelers}
-                        onChange={(e) => setShowTravelers(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300"
-                      />
-                      Ajouter le nom des voyageurs
-                    </label>
+                      <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showTravelers}
+                          onChange={(e) => setShowTravelers(e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        Ajouter le nom des voyageurs
+                      </label>
+                    </div>
+                    <div className="flex items-end pb-1.5">
+                      <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showCityDates}
+                          onChange={(e) => setShowCityDates(e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        Personnaliser les dates par ville
+                      </label>
+                    </div>
                   </div>
-                </div>
+
+                  {showCityDates && (
+                    <div className="mt-4 border-t pt-4 space-y-4">
+                      <h4 className="text-sm font-semibold text-slate-900">Dates par ville</h4>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Médine (Début)</label>
+                          <input
+                            type="date"
+                            value={medinaStart}
+                            min={periodStart}
+                            max={periodEnd}
+                            onChange={(e) => setMedinaStart(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-md text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Médine (Fin)</label>
+                          <input
+                            type="date"
+                            value={medinaEnd}
+                            min={medinaStart || periodStart}
+                            max={periodEnd}
+                            onChange={(e) => setMedinaEnd(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-md text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">La Mecque (Début)</label>
+                          <input
+                            type="date"
+                            value={meccaStart}
+                            min={periodStart}
+                            max={periodEnd}
+                            onChange={(e) => setMeccaStart(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-md text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">La Mecque (Fin)</label>
+                          <input
+                            type="date"
+                            value={meccaEnd}
+                            min={meccaStart || periodStart}
+                            max={periodEnd}
+                            onChange={(e) => setMeccaEnd(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-md text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                 {showTravelers && (
                   <div className="mt-4 border-t pt-4">

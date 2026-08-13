@@ -46,7 +46,11 @@ export function BrandLogo({
 }
 
 export function AppHeader({ links }: { links: AppHeaderLink[] }) {
-  const navigationLinks = [{ href: "/dashboard", label: "Tableau de bord" }, ...links]
+  const navigationLinks = [
+    { href: "/dashboard", label: "Tableau de bord" },
+    { href: "/planning", label: "Planning" },
+    ...links
+  ]
 
   return (
     <nav className="sticky top-0 z-50 w-full glass-effect transition-premium shadow-premium">
