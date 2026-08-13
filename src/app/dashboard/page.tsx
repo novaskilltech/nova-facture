@@ -4,23 +4,24 @@ import Link from "next/link"
 import { AppHeader } from "@/components/AppHeader"
 import { StatusFilter } from "@/components/StatusFilter"
 import { Prisma } from "@prisma/client"
-
 import { EntityFilter } from "@/components/EntityFilter"
+import { SearchInput } from "@/components/SearchInput"
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sortBy?: string; sortOrder?: string; status?: string; entityId?: string; page?: string }>
+  searchParams: Promise<{ sortBy?: string; sortOrder?: string; status?: string; entityId?: string; page?: string; search?: string }>
 }) {
   await requireAuth()
 
-  const { sortBy, sortOrder, status, entityId, page: pageParam } = await searchParams
+  const { sortBy, sortOrder, status, entityId, page: pageParam, search } = await searchParams
 
   const orderField = sortBy || "createdAt"
   const orderDirection = sortOrder === "asc" ? "asc" : "desc"
   const filterStatus = status || "all"
   const filterEntityId = entityId || "all"
   const currentPage = Number(pageParam) || 1
+  const searchQuery = search || ""
 
   const activeEntities = await prisma.entity.findMany({
     where: { isActive: true },
@@ -41,7 +42,21 @@ export default async function DashboardPage({
     orderByInput = { createdAt: orderDirection }
   }
 
+  // Filtrage par recherche
+  const whereInput: Prisma.InvoiceWhereInput = {}
+  if (searchQuery) {
+    whereInput.OR = [
+      { number: { contains: searchQuery } },
+      { client: { lastName: { contains: searchQuery } } },
+      { client: { firstName: { contains: searchQuery } } },
+      { client: { email: { contains: searchQuery } } },
+      { client: { phone: { contains: searchQuery } } },
+      { client: { company: { contains: searchQuery } } }
+    ]
+  }
+
   const allInvoices = await prisma.invoice.findMany({
+    where: whereInput,
     include: { entity: true, client: true },
     orderBy: orderByInput,
   })
@@ -87,6 +102,7 @@ export default async function DashboardPage({
     if (sortOrder) params.set("sortOrder", sortOrder)
     if (status && status !== "all") params.set("status", status)
     if (entityId && entityId !== "all") params.set("entityId", entityId)
+    if (searchQuery) params.set("search", searchQuery)
     if (page > 1) params.set("page", String(page))
 
     for (const [key, value] of Object.entries(newParams)) {
@@ -228,15 +244,18 @@ export default async function DashboardPage({
 
         {/* Tableau des Factures Épuré */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-premium overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 sm:p-6">
+          <div className="p-4 border-b border-slate-100 flex flex-col gap-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between lg:gap-3">
             <div className="flex flex-wrap items-center gap-3 sm:gap-4">
               <h2 className="text-lg font-bold text-slate-900">Dernières Factures</h2>
               <EntityFilter entities={activeEntities} currentEntityId={filterEntityId} />
               <StatusFilter currentStatus={filterStatus} />
             </div>
-            <Link href="/invoices/new" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-premium">
-              Créer une facture ➔
-            </Link>
+            <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+              <SearchInput defaultValue={searchQuery} />
+              <Link href="/invoices/new" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-premium whitespace-nowrap">
+                Créer une facture ➔
+              </Link>
+            </div>
           </div>
           
           <div className="p-4 md:hidden flex flex-wrap items-center gap-2 bg-slate-50/50 border-b border-slate-100 text-xs text-slate-500">
