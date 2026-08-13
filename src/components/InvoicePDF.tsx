@@ -17,7 +17,7 @@ Font.register({
 })
 
 const termsNotice =
-  "Le règlement total ou partiel de la présente facture emporte acceptation pleine et entière de nos conditions générales de vente. Conformément à ces conditions, aucune annulation ni aucun remboursement ne pourra être accordé après paiement total ou partiel de la facture."
+  "Le versement de votre acompte (ou le paiement de cette facture) valide définitivement les dates de votre séjour et emporte acceptation de nos conditions générales de vente. Afin de garantir la bonne organisation de votre voyage, les dates choisies deviennent alors fermes et ne pourront plus être modifiées ni remboursées. Nous vous remercions chaleureusement pour votre confiance et votre compréhension !"
 const termsAvailability =
   "Nos conditions générales de vente sont consultables sur le site omrayanair.com."
 const vatExemptionNotice =
