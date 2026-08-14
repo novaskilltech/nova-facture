@@ -78,6 +78,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       : invoice.amountHT / Math.max(invoice.quantity, 1)
     const totalHT = quantity * unitPriceHT
 
+    let notes = data.notes
+    if (data.status === "cancelled" && data.cancellationReason) {
+      const currentNotes = invoice.notes ? `${invoice.notes}\n` : ""
+      const dateStr = new Date().toLocaleDateString("fr-FR")
+      notes = `${currentNotes}[Annulée le ${dateStr}] Raison : ${data.cancellationReason}`
+    }
+
     const updated = await prisma.invoice.update({
       where: { id },
       data: {
@@ -96,7 +103,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ...(data.discountName !== undefined && { discountName: data.discountName }),
         ...(data.paymentMethod && { paymentMethod: data.paymentMethod }),
         ...(data.paymentLink !== undefined && { paymentLink: data.paymentLink }),
-        ...(data.notes !== undefined && { notes: data.notes }),
+        ...(notes !== undefined && { notes }),
         ...(data.status === "emitted" && { status: "emitted", emittedAt: new Date() }),
         ...(data.status && data.status !== "emitted" && { status: data.status }),
       },

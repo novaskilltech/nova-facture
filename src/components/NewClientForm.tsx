@@ -16,10 +16,12 @@ export function NewClientForm() {
     city: "",
     notes: "",
   })
+  const [error, setError] = useState("")
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError("")
     const res = await fetch("/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -27,6 +29,7 @@ export function NewClientForm() {
     })
     if (res.ok) {
       setOpen(false)
+      setError("")
       setForm({
         lastName: "",
         firstName: "",
@@ -39,6 +42,9 @@ export function NewClientForm() {
         notes: "",
       })
       router.refresh()
+    } else {
+      const data = await res.json()
+      setError(data.error || "Erreur lors de la création")
     }
   }
 
@@ -57,6 +63,11 @@ export function NewClientForm() {
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
       <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 shadow-lg sm:p-6">
         <h3 className="text-lg font-semibold mb-4">Nouveau payeur</h3>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md text-xs mb-3">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input

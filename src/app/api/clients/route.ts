@@ -24,6 +24,33 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json()
+    
+    if (data.lastName) {
+      const OR_conditions = []
+      if (data.email && data.email.trim() !== "") {
+        OR_conditions.push({ email: { equals: data.email.trim(), mode: "insensitive" } })
+      }
+      OR_conditions.push({
+        lastName: { equals: data.lastName.trim(), mode: "insensitive" },
+        firstName: data.firstName && data.firstName.trim() !== "" 
+          ? { equals: data.firstName.trim(), mode: "insensitive" } 
+          : null,
+      })
+
+      const existingClient = await prisma.client.findFirst({
+        where: {
+          OR: OR_conditions as any
+        }
+      })
+
+      if (existingClient) {
+        return NextResponse.json(
+          { error: "Ce client (nom ou email) existe déjà dans la base de données." },
+          { status: 409 }
+        )
+      }
+    }
+
     const client = await prisma.client.create({ data })
     return NextResponse.json(client)
   } catch {

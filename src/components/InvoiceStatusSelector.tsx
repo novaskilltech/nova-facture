@@ -26,12 +26,26 @@ export function InvoiceStatusSelector({
 
   async function updateStatus(nextStatus: string) {
     const previousStatus = status
+    let cancellationReason = ""
+
+    if (nextStatus === "cancelled") {
+      const reason = prompt("Veuillez indiquer la raison de l'annulation de cette facture :")
+      if (reason === null) {
+        // L'utilisateur a annulé la saisie
+        return
+      }
+      cancellationReason = reason.trim()
+    }
+
     setStatus(nextStatus)
 
     const response = await fetch(`/api/invoices/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: nextStatus }),
+      body: JSON.stringify({
+        status: nextStatus,
+        ...(cancellationReason && { cancellationReason }),
+      }),
     })
 
     if (!response.ok) {

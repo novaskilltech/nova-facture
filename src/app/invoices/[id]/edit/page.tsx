@@ -383,6 +383,7 @@ export default function EditInvoicePage({
   const [selectedClient, setSelectedClient] = useState<string>("")
   const [newClientModal, setNewClientModal] = useState(false)
   const [newClient, setNewClient] = useState({ lastName: "", firstName: "", company: "", email: "", phone: "", address: "", postalCode: "", city: "" })
+  const [newClientError, setNewClientError] = useState("")
 
   const [invoiceNumber, setInvoiceNumber] = useState("")
   const [invoiceDate, setInvoiceDate] = useState("")
@@ -669,6 +670,7 @@ export default function EditInvoicePage({
   const totalHT = Math.max(0, totalHTBeforeGlobalDiscount - globalDiscountAmount)
 
   async function handleCreateClient() {
+    setNewClientError("")
     try {
       const res = await fetch("/api/clients", {
         method: "POST",
@@ -681,9 +683,13 @@ export default function EditInvoicePage({
         setSelectedClient(created.id)
         setNewClientModal(false)
         setNewClient({ lastName: "", firstName: "", company: "", email: "", phone: "", address: "", postalCode: "", city: "" })
+        setNewClientError("")
+      } else {
+        const data = await res.json()
+        setNewClientError(data.error || "Erreur lors de la création du payeur")
       }
     } catch {
-      setError("Erreur lors de la création du payeur")
+      setNewClientError("Erreur lors de la création du payeur")
     }
   }
 
@@ -804,7 +810,7 @@ export default function EditInvoicePage({
                 </select>
                 <button
                   type="button"
-                  onClick={() => setNewClientModal(true)}
+                  onClick={() => { setNewClientModal(true); setNewClientError(""); }}
                   className="rounded-md px-1 py-2 text-sm font-semibold text-blue-600 hover:underline"
                 >
                   + Nouveau payeur
@@ -1530,6 +1536,11 @@ export default function EditInvoicePage({
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
           <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 shadow-lg sm:p-6">
             <h3 className="text-lg font-semibold mb-4">Nouveau payeur</h3>
+            {newClientError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md text-xs mb-3">
+                {newClientError}
+              </div>
+            )}
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input

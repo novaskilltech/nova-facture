@@ -112,12 +112,12 @@ export default async function PlanningPage({
       medina: {
         quad: [] as { name: string; invoiceNumber: string; invoiceId: string }[],
         quintuple: [] as { name: string; invoiceNumber: string; invoiceId: string }[],
-        private: 0, // Compteur pour info (double, triple, single)
+        privateRooms: [] as { name: string; invoiceNumber: string; invoiceId: string; type: string }[],
       },
       mecca: {
         quad: [] as { name: string; invoiceNumber: string; invoiceId: string }[],
         quintuple: [] as { name: string; invoiceNumber: string; invoiceId: string }[],
-        private: 0,
+        privateRooms: [] as { name: string; invoiceNumber: string; invoiceId: string; type: string }[],
       },
     }
 
@@ -192,7 +192,7 @@ export default async function PlanningPage({
           } else if (roomType === "quintuple") {
             travelers.forEach(name => list.quintuple.push({ name, invoiceNumber: inv.number, invoiceId: inv.id }))
           } else {
-            list.private += travelers.length
+            travelers.forEach(name => list.privateRooms.push({ name, invoiceNumber: inv.number, invoiceId: inv.id, type: roomType }))
           }
         }
       }
@@ -201,9 +201,9 @@ export default async function PlanningPage({
     return presence
   })
 
-  // Génération des options du sélecteur de mois (sur 6 mois glissants)
+  // Génération des options du sélecteur de mois (sur 12 mois glissants)
   const monthOptions = []
-  for (let i = -2; i < 4; i++) {
+  for (let i = -2; i < 10; i++) {
     const d = new Date()
     d.setMonth(d.getMonth() + i)
     monthOptions.push({
@@ -258,8 +258,10 @@ export default async function PlanningPage({
             const hasActivity =
               day.medina.quad.length > 0 ||
               day.medina.quintuple.length > 0 ||
+              day.medina.privateRooms.length > 0 ||
               day.mecca.quad.length > 0 ||
-              day.mecca.quintuple.length > 0
+              day.mecca.quintuple.length > 0 ||
+              day.mecca.privateRooms.length > 0
 
             return (
               <div
@@ -273,8 +275,8 @@ export default async function PlanningPage({
                   <span className="font-bold text-slate-800 capitalize">{formattedDay}</span>
                   {hasActivity ? (
                     <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600 border border-blue-100">
-                      {day.medina.quad.length + day.medina.quintuple.length + day.medina.private +
-                       day.mecca.quad.length + day.mecca.quintuple.length + day.mecca.private} pèlerin(s)
+                      {day.medina.quad.length + day.medina.quintuple.length + day.medina.privateRooms.length +
+                       day.mecca.quad.length + day.mecca.quintuple.length + day.mecca.privateRooms.length} pèlerin(s)
                     </span>
                   ) : (
                     <span className="text-xs text-slate-400">Aucun départ/présence</span>
@@ -353,11 +355,31 @@ export default async function PlanningPage({
                       </div>
 
                       {/* Privé Médine */}
-                      {day.medina.private > 0 && (
-                        <div className="pt-2 text-xs text-slate-500">
-                          ℹ️ <span className="font-semibold">{day.medina.private}</span> pèlerin(s) en chambre privée (Double/Triple/Single)
+                      <div className="pt-2 border-t border-slate-100/60 mt-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-semibold text-slate-400">Chambres Privées</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/60">
+                            {day.medina.privateRooms.length} pèlerin(s)
+                          </span>
                         </div>
-                      )}
+                        {day.medina.privateRooms.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {day.medina.privateRooms.map((p, idx) => (
+                              <Link
+                                key={idx}
+                                href={`/invoices/${p.invoiceId}`}
+                                className="inline-flex items-center gap-1.5 bg-slate-50/50 border border-dashed border-slate-200 hover:bg-slate-100/80 text-xs text-slate-600 px-2.5 py-1.5 rounded-lg transition-premium cursor-pointer"
+                              >
+                                <span className="font-semibold">{p.name}</span>
+                                <span className="text-[9px] text-slate-400 capitalize">({p.type})</span>
+                                <span className="text-[9px] text-slate-400">({p.invoiceNumber})</span>
+                              </Link>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-300 italic">Aucun pèlerin en chambre privée</p>
+                        )}
+                      </div>
                     </div>
 
                     {/* Colonne La Mecque */}
@@ -430,11 +452,31 @@ export default async function PlanningPage({
                       </div>
 
                       {/* Privé La Mecque */}
-                      {day.mecca.private > 0 && (
-                        <div className="pt-2 text-xs text-slate-500">
-                          ℹ️ <span className="font-semibold">{day.mecca.private}</span> pèlerin(s) en chambre privée (Double/Triple/Single)
+                      <div className="pt-2 border-t border-slate-100/60 mt-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-semibold text-slate-400">Chambres Privées</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/60">
+                            {day.mecca.privateRooms.length} pèlerin(s)
+                          </span>
                         </div>
-                      )}
+                        {day.mecca.privateRooms.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {day.mecca.privateRooms.map((p, idx) => (
+                              <Link
+                                key={idx}
+                                href={`/invoices/${p.invoiceId}`}
+                                className="inline-flex items-center gap-1.5 bg-slate-50/50 border border-dashed border-slate-200 hover:bg-slate-100/80 text-xs text-slate-600 px-2.5 py-1.5 rounded-lg transition-premium cursor-pointer"
+                              >
+                                <span className="font-semibold">{p.name}</span>
+                                <span className="text-[9px] text-slate-400 capitalize">({p.type})</span>
+                                <span className="text-[9px] text-slate-400">({p.invoiceNumber})</span>
+                              </Link>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-300 italic">Aucun pèlerin en chambre privée</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
