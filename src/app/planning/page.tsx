@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import Link from "next/link"
 import { AppHeader } from "@/components/AppHeader"
+import { MonthSelector } from "@/components/MonthSelector"
 
 // Helper pour parser la description
 function parseInvoiceDescription(description: string) {
@@ -237,25 +238,11 @@ export default async function PlanningPage({
           {/* Sélecteur de mois */}
           <div className="flex items-center gap-2">
             <label className="text-sm font-semibold text-slate-600">Période :</label>
-            <select
-              value={`${currentMonth}-${currentYear}`}
-              onChange={(e) => {
-                // Redirection simple via window.location dans un onChange
-              }}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-premium outline-none"
-              // eslint-disable-next-line react/no-no-access-state-in-setstate
-              // @ts-ignore
-              onInput={(e) => {
-                const [m, y] = e.currentTarget.value.split("-")
-                window.location.href = `/planning?month=${m}&year=${y}`
-              }}
-            >
-              {monthOptions.map((opt) => (
-                <option key={`${opt.month}-${opt.year}`} value={`${opt.month}-${opt.year}`}>
-                  {opt.label.charAt(0).toUpperCase() + opt.label.slice(1)}
-                </option>
-              ))}
-            </select>
+            <MonthSelector
+              currentMonth={currentMonth}
+              currentYear={currentYear}
+              options={monthOptions}
+            />
           </div>
         </div>
 
