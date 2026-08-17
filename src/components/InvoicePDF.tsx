@@ -418,6 +418,9 @@ export function InvoicePDF({ invoice, logoSrc }: InvoicePDFProps) {
             <Text style={styles.paymentDetail}>Titulaire: {entity.bankHolder}</Text>
             <Text style={styles.paymentDetail}>IBAN: {entity.bankIban}</Text>
             <Text style={styles.paymentDetail}>BIC: {entity.bankBic}</Text>
+            <Text style={[styles.paymentDetail, { marginTop: 6, fontWeight: "bold", color: "#e11d48" }]}>
+              Important : Veuillez indiquer uniquement le numéro de facture ({invoice.number}) dans la référence ou le libellé de votre virement. Aucune autre mention n'est autorisée.
+            </Text>
           </View>
         )}
 

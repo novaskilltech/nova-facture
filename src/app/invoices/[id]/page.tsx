@@ -244,6 +244,9 @@ export default async function InvoiceDetailPage({
                 <p className="break-all font-mono font-medium">{invoice.entity.bankBic}</p>
               </div>
             </div>
+            <div className="mt-4 border-t pt-4 text-xs text-rose-600 font-semibold">
+              <span className="font-bold">Important :</span> Veuillez indiquer uniquement le numéro de facture <span className="font-mono bg-rose-50 px-1 py-0.5 rounded">{invoice.number}</span> dans la référence ou le libellé de votre virement. Aucune autre mention n'est autorisée.
+            </div>
           </div>
         )}
 
