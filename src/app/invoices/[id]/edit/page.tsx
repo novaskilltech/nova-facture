@@ -848,7 +848,13 @@ export default function EditInvoicePage({
                       <input
                         type="date"
                         value={periodStart}
-                        onChange={(e) => setPeriodStart(e.target.value)}
+                        onChange={(e) => {
+                          const newStart = e.target.value
+                          setPeriodStart(newStart)
+                          if (newStart && (!periodEnd || periodEnd < newStart)) {
+                            setPeriodEnd(newStart)
+                          }
+                        }}
                         className="w-full px-3 py-2 border rounded-md"
                       />
                     </div>
@@ -857,6 +863,7 @@ export default function EditInvoicePage({
                       <input
                         type="date"
                         value={periodEnd}
+                        min={periodStart || undefined}
                         onChange={(e) => setPeriodEnd(e.target.value)}
                         className="w-full px-3 py-2 border rounded-md"
                       />

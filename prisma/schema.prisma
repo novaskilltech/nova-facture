@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider = "sqlite"
   url       = env("DATABASE_URL")
-  // // // // // // // // // // // // // // // // // // // // // // // // // directUrl = env("DIRECT_URL")
+  // // // // // // // // // // // // // // // // // // // // // // // // // // // // directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -48,45 +48,54 @@ model Entity {
 }
 
 model Client {
-  id         String    @id @default(cuid())
-  lastName   String
-  firstName  String?
-  company    String?
-  email      String?
-  phone      String?
-  address    String?
-  postalCode String?
-  city       String?
-  notes      String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  invoices   Invoice[]
+  id                String    @id @default(cuid())
+  lastName          String
+  firstName         String?
+  company           String?
+  email             String?
+  phone             String?
+  address           String?
+  postalCode        String?
+  city              String?
+  country           String?   @default("France")
+  region            String?
+  department        String?
+  latitude          Float?
+  longitude         Float?
+  geocodeStatus     String?   @default("PENDING") // PENDING, SUCCESS, FAILED
+  geocodeError      String?
+  acquisitionSource String?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  invoices          Invoice[]
 }
 
 model Invoice {
-  id            String    @id @default(cuid())
-  number        String    @unique
-  date          DateTime
-  periodStart   DateTime?
-  periodEnd     DateTime?
-  description   String
-  quantity      Int       @default(1)
-  amountHT      Float
-  tvaRate       Float     @default(0)
-  tvaAmount     Float     @default(0)
-  totalTTC      Float
-  status        String    @default("draft")
-  paymentMethod String
-  paymentLink   String?
-  notes         String?
-  entityId      String
-  clientId      String
-  discountType  String    @default("none")
-  discountValue Float     @default(0)
-  discountName  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  emittedAt     DateTime?
-  entity        Entity    @relation(fields: [entityId], references: [id])
-  client        Client    @relation(fields: [clientId], references: [id])
+  id                String    @id @default(cuid())
+  number            String    @unique
+  date              DateTime
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  description       String
+  quantity          Int       @default(1)
+  amountHT          Float
+  tvaRate           Float     @default(0)
+  tvaAmount         Float     @default(0)
+  totalTTC          Float
+  status            String    @default("draft")
+  paymentMethod     String
+  paymentLink       String?
+  acquisitionSource String?
+  notes             String?
+  entityId          String
+  clientId          String
+  discountType      String    @default("none")
+  discountValue     Float     @default(0)
+  discountName      String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  emittedAt         DateTime?
+  entity            Entity    @relation(fields: [entityId], references: [id])
+  client            Client    @relation(fields: [clientId], references: [id])
 }

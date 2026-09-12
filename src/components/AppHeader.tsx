@@ -49,7 +49,8 @@ export function AppHeader({ links }: { links: AppHeaderLink[] }) {
   const navigationLinks = [
     { href: "/dashboard", label: "Tableau de bord" },
     { href: "/planning", label: "Planning" },
-    ...links
+    { href: "/statistics/geo", label: "Statistiques" },
+    ...links.filter((l) => l.href !== "/statistics/geo")
   ]
 
   return (
