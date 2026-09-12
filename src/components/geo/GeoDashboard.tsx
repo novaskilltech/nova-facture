@@ -240,6 +240,7 @@ export function GeoDashboard({ entities }: GeoDashboardProps) {
 
         <GeoMap
           points={data?.mapPoints || []}
+          regions={data?.rankings?.regions || []}
           onSelectZone={handleSelectCity}
           selectedCity={selectedZone?.name}
         />
