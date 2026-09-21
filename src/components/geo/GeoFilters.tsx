@@ -71,21 +71,29 @@ export function GeoFilters({ filters, onChange, entities }: GeoFiltersProps) {
           </select>
         </div>
 
-        {/* Aéroport de départ */}
+        {/* Aéroport / Ville de départ */}
         <div>
           <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-            Aéroport départ
+            Ville / Aéroport départ
           </label>
           <select
             value={filters.departureAirport || "all"}
             onChange={(e) => onChange({ departureAirport: e.target.value })}
             className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-premium"
           >
-            <option value="all">Tous les aéroports</option>
+            <option value="all">Toutes les villes</option>
             <option value="Paris">Paris</option>
             <option value="Marseille">Marseille</option>
             <option value="Lyon">Lyon</option>
+            <option value="Nice">Nice</option>
+            <option value="Toulouse">Toulouse</option>
+            <option value="Bordeaux">Bordeaux</option>
             <option value="Bruxelles">Bruxelles</option>
+            <option value="Charleroi">Charleroi</option>
+            <option value="Barcelone">Barcelone</option>
+            <option value="Madrid">Madrid</option>
+            <option value="Malaga">Malaga</option>
+            <option value="Cologne">Cologne</option>
           </select>
         </div>
 

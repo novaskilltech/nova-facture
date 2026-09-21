@@ -56,7 +56,21 @@ const roomTypes = [
   { value: "quintuple", label: "Quintuple", supplement: 0 },
 ]
 
-const departureAirports = ["Paris", "Marseille", "Lyon", "Bruxelles"]
+const departureAirports = [
+  "Paris",
+  "Marseille",
+  "Lyon",
+  "Nice",
+  "Toulouse",
+  "Bordeaux",
+  "Bruxelles",
+  "Charleroi",
+  "Barcelone",
+  "Madrid",
+  "Malaga",
+  "Cologne",
+  "Autre",
+]
 const breakfastPricePerDay = 10
 
 function formatStayDate(date: string) {
@@ -118,31 +132,10 @@ function parseLineDiscount(line: string) {
   }
 }
 
-function buildProductDescription({
-  periodStart,
-  periodEnd,
-  departureAirport,
-  includeVisa,
-  includeVisaKsaExtra,
-  visaKsaAmount,
-  visaKsaQuantity,
-  visaKsaDiscountType,
-  visaKsaDiscountValue,
-  visaKsaDiscountName,
-  roomType,
-  roomDiscountType,
-  roomDiscountValue,
-  roomDiscountName,
-  includeBreakfast,
-  customProducts,
-  showTravelers,
-  travelerNames,
-  showCityDates,
-  medinaStart,
-  medinaEnd,
-  meccaStart,
-  meccaEnd,
-}: {
+type InvoiceCategory = "package" | "visa_only" | "hotel_only" | "guide_only" | "custom"
+
+interface BuildDescriptionParams {
+  category: InvoiceCategory
   periodStart: string
   periodEnd: string
   departureAirport: string
@@ -166,45 +159,130 @@ function buildProductDescription({
   medinaEnd?: string
   meccaStart?: string
   meccaEnd?: string
-}) {
+  hotelDetails?: string
+  guideDetails?: string
+}
+
+function buildProductDescription(params: BuildDescriptionParams) {
+  const {
+    category,
+    periodStart,
+    periodEnd,
+    departureAirport,
+    includeVisa,
+    includeVisaKsaExtra,
+    visaKsaAmount,
+    visaKsaQuantity,
+    visaKsaDiscountType,
+    visaKsaDiscountValue,
+    visaKsaDiscountName,
+    roomType,
+    roomDiscountType,
+    roomDiscountValue,
+    roomDiscountName,
+    includeBreakfast,
+    customProducts,
+    showTravelers,
+    travelerNames,
+    showCityDates,
+    medinaStart,
+    medinaEnd,
+    meccaStart,
+    meccaEnd,
+    hotelDetails,
+    guideDetails,
+  } = params
+
   const stayPeriod = periodStart && periodEnd
     ? `du ${formatStayDate(periodStart)} au ${formatStayDate(periodEnd)}`
     : periodStart
       ? `à partir du ${formatStayDate(periodStart)}`
       : periodEnd
         ? `jusqu'au ${formatStayDate(periodEnd)}`
-        : "dates de séjour à préciser"
-  const room = roomTypes.find((type) => type.value === roomType)
-  const roomLabel = room?.label || roomType
-  const roomSupplement = room?.supplement || 0
-  const stayDays = calculateStayDays(periodStart, periodEnd)
-  const breakfastSupplement = includeBreakfast ? stayDays * breakfastPricePerDay : 0
-  const breakfastLabel = includeBreakfast
-    ? `inclus (${stayDays} jour${stayDays > 1 ? "s" : ""} x ${breakfastPricePerDay.toFixed(2)} € = ${breakfastSupplement.toFixed(2)} €)`
-    : "non inclus"
+        : ""
 
-  let visaLabel = "sans visa"
-  if (includeVisa) {
-    visaLabel = "Visa inclus (sans frais supplémentaires)"
-  } else if (includeVisaKsaExtra) {
+  const lines: string[] = []
+
+  // 1. Visas seuls
+  if (category === "visa_only") {
+    lines.push("Délivrance de Visas Touristiques / Omra (Royaume d'Arabie Saoudite)")
     const qtyVal = parseInt(visaKsaQuantity || "1", 10) || 1
-    const priceVal = parseFloat(visaKsaAmount || "0") || 0
+    const priceVal = parseFloat(visaKsaAmount || "135") || 135
     const baseTotal = priceVal * qtyVal
     const discStr = formatLineDiscount(visaKsaDiscountType, visaKsaDiscountValue, visaKsaDiscountName, baseTotal)
-    visaLabel = `avec frais de visa KSA supplémentaire (${priceVal.toFixed(2)} € x ${qtyVal} = ${baseTotal.toFixed(2)} €)${discStr}`
+    lines.push(`Frais de visa KSA : ${priceVal.toFixed(2)} € x ${qtyVal} = ${baseTotal.toFixed(2)} €${discStr}`)
+    if (stayPeriod) {
+      lines.push(`Période de voyage envisagée : ${stayPeriod}`)
+    }
+  } 
+  // 2. Hôtel / Hébergement seul
+  else if (category === "hotel_only") {
+    lines.push(`Réservation et hébergement hôtelier${stayPeriod ? ` (${stayPeriod})` : ""}`)
+    const room = roomTypes.find((type) => type.value === roomType)
+    const roomLabel = room?.label || roomType
+    lines.push(`Catégorie d'hébergement : chambre ${roomLabel}`)
+    if (includeBreakfast) {
+      lines.push("Formule repas : Petits déjeuners inclus")
+    }
+    if (hotelDetails && hotelDetails.trim()) {
+      lines.push(`Détails hôtels : ${hotelDetails.trim()}`)
+    }
+  } 
+  // 3. Guides, Ziyarat & Visites seuls
+  else if (category === "guide_only") {
+    lines.push("Prestations de guidage touristique, culturel et Ziyarat")
+    if (guideDetails && guideDetails.trim()) {
+      lines.push(`Programme des visites : ${guideDetails.trim()}`)
+    } else {
+      lines.push("Accompagnement par un guide francophone / arabophone pour les lieux historiques et Ziyarat")
+    }
+    if (stayPeriod) {
+      lines.push(`Dates de prestation : ${stayPeriod}`)
+    }
+  } 
+  // 4. Prestation sur mesure / personnalisée
+  else if (category === "custom") {
+    lines.push("Prestations de services et logistique sur mesure")
+    if (stayPeriod) {
+      lines.push(`Période : ${stayPeriod}`)
+    }
+  } 
+  // 5. Package Séjour Omra complet (par défaut)
+  else {
+    const stayPeriodLabel = stayPeriod || "dates de séjour à préciser"
+    const room = roomTypes.find((type) => type.value === roomType)
+    const roomLabel = room?.label || roomType
+    const roomSupplement = room?.supplement || 0
+    const stayDays = calculateStayDays(periodStart, periodEnd)
+    const breakfastSupplement = includeBreakfast ? stayDays * breakfastPricePerDay : 0
+    const breakfastLabel = includeBreakfast
+      ? `inclus (${stayDays} jour${stayDays > 1 ? "s" : ""} x ${breakfastPricePerDay.toFixed(2)} € = ${breakfastSupplement.toFixed(2)} €)`
+      : "non inclus"
+
+    let visaLabel = "sans visa"
+    if (includeVisa) {
+      visaLabel = "Visa inclus (sans frais supplémentaires)"
+    } else if (includeVisaKsaExtra) {
+      const qtyVal = parseInt(visaKsaQuantity || "1", 10) || 1
+      const priceVal = parseFloat(visaKsaAmount || "0") || 0
+      const baseTotal = priceVal * qtyVal
+      const discStr = formatLineDiscount(visaKsaDiscountType, visaKsaDiscountValue, visaKsaDiscountName, baseTotal)
+      visaLabel = `avec frais de visa KSA supplémentaire (${priceVal.toFixed(2)} € x ${qtyVal} = ${baseTotal.toFixed(2)} €)${discStr}`
+    }
+
+    const roomDiscStr = formatLineDiscount(roomDiscountType, roomDiscountValue, roomDiscountName, roomSupplement)
+
+    lines.push(
+      `Prestations de services - accompagnement logistique ${stayPeriodLabel}`,
+      `Aéroport de départ: ${departureAirport}`,
+      `Visa: ${visaLabel}`,
+      `Hébergement: chambre ${roomLabel}`,
+      `Supplément chambre: +${roomSupplement.toFixed(2)} €${roomDiscStr}`,
+      `Petit déjeuner: ${breakfastLabel}`
+    )
   }
 
-  const roomDiscStr = formatLineDiscount(roomDiscountType, roomDiscountValue, roomDiscountName, roomSupplement)
-
-  const lines = [
-    `Prestations de services - accompagnement logistique ${stayPeriod}`,
-    `Aéroport de départ: ${departureAirport}`,
-    `Visa: ${visaLabel}`,
-    `Hébergement: chambre ${roomLabel}`,
-    `Supplément chambre: +${roomSupplement.toFixed(2)} €${roomDiscStr}`,
-    `Petit déjeuner: ${breakfastLabel}`,
-  ]
-
+  // Ajouts communs optionnels
   if (showCityDates) {
     if (medinaStart && medinaEnd) {
       lines.push(`Hébergement Médine: du ${formatStayDate(medinaStart)} au ${formatStayDate(medinaEnd)}`)
@@ -215,7 +293,7 @@ function buildProductDescription({
   }
 
   if (showTravelers && travelerNames && travelerNames.length > 0) {
-    const validNames = travelerNames.filter(name => name.trim() !== "")
+    const validNames = travelerNames.filter((name) => name.trim() !== "")
     if (validNames.length > 0) {
       lines.push(`Voyageurs: ${validNames.join(", ")}`)
     }
@@ -237,6 +315,7 @@ function buildProductDescription({
 
 function parseInvoiceDescription(description: string) {
   const result = {
+    category: "package" as InvoiceCategory,
     departureAirport: "Paris",
     includeVisa: false,
     includeVisaKsaExtra: false,
@@ -258,9 +337,21 @@ function parseInvoiceDescription(description: string) {
     medinaEnd: "",
     meccaStart: "",
     meccaEnd: "",
+    hotelDetails: "",
+    guideDetails: "",
   }
 
   if (!description) return result
+
+  if (description.includes("Délivrance de Visas Touristiques")) {
+    result.category = "visa_only"
+  } else if (description.includes("Réservation et hébergement hôtelier")) {
+    result.category = "hotel_only"
+  } else if (description.includes("Prestations de guidage touristique")) {
+    result.category = "guide_only"
+  } else if (description.includes("Prestations de services et logistique sur mesure")) {
+    result.category = "custom"
+  }
 
   const airportMatch = description.match(/Aéroport de départ:\s*([^\r\n]+)/)
   if (airportMatch) {
@@ -385,6 +476,10 @@ export default function EditInvoicePage({
   const [newClient, setNewClient] = useState({ lastName: "", firstName: "", company: "", email: "", phone: "", address: "", postalCode: "", city: "" })
   const [newClientError, setNewClientError] = useState("")
 
+  const [category, setCategory] = useState<InvoiceCategory>("package")
+  const [hotelDetails, setHotelDetails] = useState("")
+  const [guideDetails, setGuideDetails] = useState("")
+
   const [invoiceNumber, setInvoiceNumber] = useState("")
   const [invoiceDate, setInvoiceDate] = useState("")
   const [periodStart, setPeriodStart] = useState("")
@@ -478,6 +573,7 @@ export default function EditInvoicePage({
 
       // Parse fields from description
       const parsed = parseInvoiceDescription(invoiceData.description || "")
+      setCategory(parsed.category)
       setDepartureAirport(parsed.departureAirport)
       setIncludeVisa(parsed.includeVisa)
       setIncludeVisaKsaExtra(parsed.includeVisaKsaExtra)
@@ -499,6 +595,8 @@ export default function EditInvoicePage({
       setMedinaEnd(parsed.medinaEnd || "")
       setMeccaStart(parsed.meccaStart || "")
       setMeccaEnd(parsed.meccaEnd || "")
+      setHotelDetails(parsed.hotelDetails || "")
+      setGuideDetails(parsed.guideDetails || "")
 
       setDiscountType(invoiceData.discountType || "none")
       setDiscountValue(invoiceData.discountValue ? invoiceData.discountValue.toString() : "")
@@ -550,7 +648,10 @@ export default function EditInvoicePage({
         roomSupplementVal -= parseFloat(parsed.roomDiscountValue || "0") || 0
       }
 
-      const baseUnitPriceHT = packageUnitPriceHT - roomSupplementVal - breakfastSupplement - visaKsaVal
+      const isPackage = parsed.category === "package"
+      const baseUnitPriceHT = isPackage
+        ? packageUnitPriceHT - roomSupplementVal - breakfastSupplement - visaKsaVal
+        : packageUnitPriceHT
       setAmountHT(Math.max(0, baseUnitPriceHT).toFixed(2))
 
       setLoading(false)
@@ -563,6 +664,7 @@ export default function EditInvoicePage({
   useEffect(() => {
     if (autoGenerateDescription) {
       const generated = buildProductDescription({
+        category,
         periodStart,
         periodEnd,
         departureAirport,
@@ -586,12 +688,15 @@ export default function EditInvoicePage({
         medinaEnd,
         meccaStart,
         meccaEnd,
+        hotelDetails,
+        guideDetails,
       })
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDescription(generated)
     }
   }, [
     autoGenerateDescription,
+    category,
     periodStart,
     periodEnd,
     departureAirport,
@@ -615,6 +720,8 @@ export default function EditInvoicePage({
     medinaEnd,
     meccaStart,
     meccaEnd,
+    hotelDetails,
+    guideDetails,
   ])
 
   const entity = entities.find((e) => e.id === selectedEntity)
@@ -658,7 +765,9 @@ export default function EditInvoicePage({
     return acc + Math.max(0, prodTotal)
   }, 0)
 
-  const packageUnitPriceHT = baseUnitPriceHT + discountedRoomSupplement + breakfastSupplement + discountedVisaKsaVal
+  const packageUnitPriceHT = category === "package"
+    ? baseUnitPriceHT + discountedRoomSupplement + breakfastSupplement + discountedVisaKsaVal
+    : baseUnitPriceHT
   const totalHTBeforeGlobalDiscount = (quantityValue * packageUnitPriceHT) + customProductsTotal
 
   let globalDiscountAmount = 0
@@ -820,53 +929,93 @@ export default function EditInvoicePage({
 
             {entity && selectedClient && (
               <>
-                <div className="rounded-lg bg-white p-4 shadow sm:p-6">
-                  <h3 className="font-semibold mb-4">Détails de la facture</h3>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Numéro</label>
-                      <input
-                        type="text"
-                        value={invoiceNumber}
-                        onChange={(e) => setInvoiceNumber(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-md"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Date</label>
-                      <input
-                        type="date"
-                        value={invoiceDate}
-                        onChange={(e) => setInvoiceDate(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-md"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Début séjour</label>
-                      <input
-                        type="date"
-                        value={periodStart}
-                        onChange={(e) => {
-                          const newStart = e.target.value
-                          setPeriodStart(newStart)
-                          if (newStart && (!periodEnd || periodEnd < newStart)) {
-                            setPeriodEnd(newStart)
-                          }
-                        }}
-                        className="w-full px-3 py-2 border rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Fin séjour</label>
-                      <input
-                        type="date"
-                        value={periodEnd}
-                        min={periodStart || undefined}
-                        onChange={(e) => setPeriodEnd(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-md"
-                      />
+              {/* Sélecteur de type de prestation */}
+              <div className="rounded-lg bg-white p-4 shadow sm:p-6">
+                <h3 className="font-semibold mb-3">Type de prestation</h3>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  {[
+                    { id: "package", label: "Séjour Omra", desc: "Package complet" },
+                    { id: "visa_only", label: "Visas seuls", desc: "Sans hébergement" },
+                    { id: "hotel_only", label: "Hôtel seul", desc: "Hébergement pur" },
+                    { id: "guide_only", label: "Guides & Visites", desc: "Ziyarat & guide" },
+                    { id: "custom", label: "Sur-mesure", desc: "Prestation libre" },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setCategory(cat.id as InvoiceCategory)
+                        if (cat.id === "visa_only") {
+                          setIncludeVisaKsaExtra(true)
+                          if (!visaKsaAmount) setVisaKsaAmount("135")
+                        }
+                      }}
+                      className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
+                        category === cat.id
+                          ? "border-blue-600 bg-blue-50 text-blue-900 font-semibold shadow-sm"
+                          : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
+                      }`}
+                    >
+                      <span className="text-sm font-medium leading-snug">{cat.label}</span>
+                      <span className="text-[11px] text-gray-500 mt-0.5">{cat.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-white p-4 shadow sm:p-6">
+                <h3 className="font-semibold mb-4">Détails de la facture</h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Numéro</label>
+                    <input
+                      type="text"
+                      value={invoiceNumber}
+                      onChange={(e) => setInvoiceNumber(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={invoiceDate}
+                      onChange={(e) => setInvoiceDate(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Début séjour {category !== "package" && <span className="text-xs text-gray-400 font-normal">(optionnel)</span>}
+                    </label>
+                    <input
+                      type="date"
+                      value={periodStart}
+                      onChange={(e) => {
+                        const newStart = e.target.value
+                        setPeriodStart(newStart)
+                        if (newStart && (!periodEnd || periodEnd < newStart)) {
+                          setPeriodEnd(newStart)
+                        }
+                      }}
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Fin séjour {category !== "package" && <span className="text-xs text-gray-400 font-normal">(optionnel)</span>}
+                    </label>
+                    <input
+                      type="date"
+                      value={periodEnd}
+                      min={periodStart || undefined}
+                      onChange={(e) => setPeriodEnd(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                  </div>
+                  {category === "package" && (
                     <div>
                       <label className="block text-sm font-medium mb-1">Aéroport de départ</label>
                       <select
@@ -882,17 +1031,19 @@ export default function EditInvoicePage({
                         ))}
                       </select>
                     </div>
-                    <div className="flex items-end pb-1.5">
-                      <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={showTravelers}
-                          onChange={(e) => setShowTravelers(e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300"
-                        />
-                        Ajouter le nom des voyageurs
-                      </label>
-                    </div>
+                  )}
+                  <div className="flex items-end pb-1.5">
+                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showTravelers}
+                        onChange={(e) => setShowTravelers(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      Ajouter le nom des voyageurs
+                    </label>
+                  </div>
+                  {category === "package" && (
                     <div className="flex items-end pb-1.5">
                       <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                         <input
@@ -904,59 +1055,86 @@ export default function EditInvoicePage({
                         Personnaliser les dates par ville
                       </label>
                     </div>
-                  </div>
+                  )}
+                </div>
 
-                  {showCityDates && (
-                    <div className="mt-4 border-t pt-4 space-y-4">
-                      <h4 className="text-sm font-semibold text-slate-900">Dates par ville</h4>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Médine (Début)</label>
-                          <input
-                            type="date"
-                            value={medinaStart}
-                            min={periodStart}
-                            max={periodEnd}
-                            onChange={(e) => setMedinaStart(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-md text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Médine (Fin)</label>
-                          <input
-                            type="date"
-                            value={medinaEnd}
-                            min={medinaStart || periodStart}
-                            max={periodEnd}
-                            onChange={(e) => setMedinaEnd(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-md text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">La Mecque (Début)</label>
-                          <input
-                            type="date"
-                            value={meccaStart}
-                            min={periodStart}
-                            max={periodEnd}
-                            onChange={(e) => setMeccaStart(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-md text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">La Mecque (Fin)</label>
-                          <input
-                            type="date"
-                            value={meccaEnd}
-                            min={meccaStart || periodStart}
-                            max={periodEnd}
-                            onChange={(e) => setMeccaEnd(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-md text-sm"
-                          />
-                        </div>
+                {category === "hotel_only" && (
+                  <div className="mt-4 border-t pt-4">
+                    <label className="block text-sm font-medium mb-1">Détails des hôtels (Médine, La Mecque, nom des établissements)</label>
+                    <input
+                      type="text"
+                      value={hotelDetails}
+                      onChange={(e) => setHotelDetails(e.target.value)}
+                      placeholder="Ex: Hôtel Pullman Zamzam Médine (5 nuits), Swissôtel Makkah (7 nuits)"
+                      className="w-full px-3 py-2 border rounded-md text-sm"
+                    />
+                  </div>
+                )}
+
+                {category === "guide_only" && (
+                  <div className="mt-4 border-t pt-4">
+                    <label className="block text-sm font-medium mb-1">Programme / Détail des visites & guides</label>
+                    <input
+                      type="text"
+                      value={guideDetails}
+                      onChange={(e) => setGuideDetails(e.target.value)}
+                      placeholder="Ex: Visite des sites historiques de Médine (Uhud, Quba) + Ziyarat La Mecque"
+                      className="w-full px-3 py-2 border rounded-md text-sm"
+                    />
+                  </div>
+                )}
+
+                {category === "package" && showCityDates && (
+                  <div className="mt-4 border-t pt-4 space-y-4">
+                    <h4 className="text-sm font-semibold text-slate-900">Dates par ville</h4>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">Médine (Début)</label>
+                        <input
+                          type="date"
+                          value={medinaStart}
+                          min={periodStart}
+                          max={periodEnd}
+                          onChange={(e) => setMedinaStart(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">Médine (Fin)</label>
+                        <input
+                          type="date"
+                          value={medinaEnd}
+                          min={medinaStart || periodStart}
+                          max={periodEnd}
+                          onChange={(e) => setMedinaEnd(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">La Mecque (Début)</label>
+                        <input
+                          type="date"
+                          value={meccaStart}
+                          min={periodStart}
+                          max={periodEnd}
+                          onChange={(e) => setMeccaStart(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">La Mecque (Fin)</label>
+                        <input
+                          type="date"
+                          value={meccaEnd}
+                          min={meccaStart || periodStart}
+                          max={periodEnd}
+                          onChange={(e) => setMeccaEnd(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md text-sm"
+                        />
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
                 {showTravelers && (
                   <div className="mt-4 border-t pt-4">
@@ -985,27 +1163,36 @@ export default function EditInvoicePage({
                   </div>
                 )}
               </div>
-                  <div className="mt-4">
-                    <h4 className="mb-3 text-sm font-semibold text-slate-900">Produits inclus</h4>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+
+              {(category === "package" || category === "hotel_only" || category === "visa_only") && (
+                <div className="rounded-lg bg-white p-4 shadow sm:p-6">
+                  <h4 className="mb-3 text-sm font-semibold text-slate-900">
+                    {category === "visa_only"
+                      ? "Configuration des Visas"
+                      : category === "hotel_only"
+                      ? "Configuration Hébergement"
+                      : "Options & Prestations incluses"}
+                  </h4>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    {(category === "package" || category === "visa_only") && (
                       <div className="flex flex-col gap-2 rounded-md border border-gray-200 px-3 py-2">
-                        <label className="flex items-center gap-3 text-sm font-medium cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={includeVisa}
-                            onChange={(e) => {
-                              setIncludeVisa(e.target.checked)
-                              if (e.target.checked) {
-                                setIncludeVisaKsaExtra(false)
-                                setVisaKsaAmount("")
-                              }
-                            }}
-                            className="h-4 w-4 rounded border-gray-300"
-                          />
-                          Visa inclus
-                        </label>
-                      </div>
-                      <div className="flex flex-col gap-2 rounded-md border border-gray-200 px-3 py-2">
+                        {category === "package" && (
+                          <label className="flex items-center gap-3 text-sm font-medium cursor-pointer mb-2">
+                            <input
+                              type="checkbox"
+                              checked={includeVisa}
+                              onChange={(e) => {
+                                setIncludeVisa(e.target.checked)
+                                if (e.target.checked) {
+                                  setIncludeVisaKsaExtra(false)
+                                  setVisaKsaAmount("")
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            Visa inclus au forfait
+                          </label>
+                        )}
                         <label className="flex items-center gap-3 text-sm font-medium cursor-pointer">
                           <input
                             type="checkbox"
@@ -1015,7 +1202,7 @@ export default function EditInvoicePage({
                               if (e.target.checked) {
                                 setIncludeVisa(false)
                                 setVisaKsaAmount("135")
-                                setVisaKsaQuantity("1")
+                                setVisaKsaQuantity(quantity || "1")
                               } else {
                                 setVisaKsaAmount("")
                                 setVisaKsaQuantity("1")
@@ -1023,7 +1210,7 @@ export default function EditInvoicePage({
                             }}
                             className="h-4 w-4 rounded border-gray-300"
                           />
-                          Supplément Visa KSA
+                          {category === "visa_only" ? "Frais Visa KSA" : "Supplément Visa KSA"}
                         </label>
                         {includeVisaKsaExtra && (
                           <>
@@ -1089,95 +1276,103 @@ export default function EditInvoicePage({
                           </>
                         )}
                       </div>
-                      <div className="flex flex-col gap-2 rounded-md border border-gray-200 px-3 py-2">
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Type de chambre</label>
-                          <select
-                            value={roomType}
-                            onChange={(e) => setRoomType(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-md text-sm"
-                          >
-                            {roomTypes.map((type) => (
-                              <option key={type.value} value={type.value}>
-                                {type.label} (+{type.supplement.toFixed(2)} €)
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="mt-1 border-t pt-1 space-y-1">
-                          <label className="block text-[10px] text-gray-500 font-medium">Remise chambre</label>
-                          <div className="flex gap-1">
+                    )}
+
+                    {(category === "package" || category === "hotel_only") && (
+                      <>
+                        <div className="flex flex-col gap-2 rounded-md border border-gray-200 px-3 py-2">
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Type de chambre</label>
                             <select
-                              value={roomDiscountType}
-                              onChange={(e) => setRoomDiscountType(e.target.value)}
-                              className="text-[10px] px-1 py-1 border rounded-md"
+                              value={roomType}
+                              onChange={(e) => setRoomType(e.target.value)}
+                              className="w-full px-3 py-2 border rounded-md text-sm"
                             >
-                              <option value="none">Sans</option>
-                              <option value="percentage">%</option>
-                              <option value="amount">Montant</option>
+                              {roomTypes.map((type) => (
+                                <option key={type.value} value={type.value}>
+                                  {type.label} {type.supplement > 0 ? `(+${type.supplement.toFixed(2)} €)` : ""}
+                                </option>
+                              ))}
                             </select>
-                            {roomDiscountType !== "none" && (
-                              <>
-                                <input
-                                  type="number"
-                                  placeholder="Val"
-                                  value={roomDiscountValue}
-                                  onChange={(e) => setRoomDiscountValue(e.target.value)}
-                                  className="w-12 text-[10px] px-1 py-1 border rounded-md"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Désignation"
-                                  value={roomDiscountName}
-                                  onChange={(e) => setRoomDiscountName(e.target.value)}
-                                  className="flex-1 text-[10px] px-1 py-1 border rounded-md"
-                                />
-                              </>
-                            )}
                           </div>
+                          {category === "package" && (
+                            <div className="mt-1 border-t pt-1 space-y-1">
+                              <label className="block text-[10px] text-gray-500 font-medium">Remise chambre</label>
+                              <div className="flex gap-1">
+                                <select
+                                  value={roomDiscountType}
+                                  onChange={(e) => setRoomDiscountType(e.target.value)}
+                                  className="text-[10px] px-1 py-1 border rounded-md"
+                                >
+                                  <option value="none">Sans</option>
+                                  <option value="percentage">%</option>
+                                  <option value="amount">Montant</option>
+                                </select>
+                                {roomDiscountType !== "none" && (
+                                  <>
+                                    <input
+                                      type="number"
+                                      placeholder="Val"
+                                      value={roomDiscountValue}
+                                      onChange={(e) => setRoomDiscountValue(e.target.value)}
+                                      className="w-12 text-[10px] px-1 py-1 border rounded-md"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Désignation"
+                                      value={roomDiscountName}
+                                      onChange={(e) => setRoomDiscountName(e.target.value)}
+                                      className="flex-1 text-[10px] px-1 py-1 border rounded-md"
+                                    />
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <label className="flex min-h-11 items-center gap-3 rounded-md border border-gray-200 px-3 py-2 text-sm font-medium sm:mt-0">
-                        <input
-                          type="checkbox"
-                          checked={includeBreakfast}
-                          onChange={(e) => setIncludeBreakfast(e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300"
-                        />
-                        Petit déjeuner (+{breakfastPricePerDay.toFixed(2)} €/jour)
-                      </label>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-sm font-medium">Description du package / Détail de la facture</label>
-                      <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={autoGenerateDescription}
-                          onChange={(e) => setAutoGenerateDescription(e.target.checked)}
-                          className="h-3 w-3 rounded border-gray-300"
-                        />
-                        Générer automatiquement
-                      </label>
-                    </div>
-                    <textarea
-                      value={description}
-                      onChange={(e) => {
-                        setDescription(e.target.value)
-                        if (autoGenerateDescription) {
-                          setAutoGenerateDescription(false)
-                        }
-                      }}
-                      className="w-full px-3 py-2 border rounded-md text-slate-700 focus:ring-1 focus:ring-blue-500"
-                      rows={6}
-                      required
-                    />
-                    <p className="text-xs text-gray-400 mt-1">
-                      Vous pouvez modifier ce texte librement. Toute modification manuelle désactivera la génération automatique.
-                    </p>
+                        <label className="flex min-h-11 items-center gap-3 rounded-md border border-gray-200 px-3 py-2 text-sm font-medium sm:mt-0">
+                          <input
+                            type="checkbox"
+                            checked={includeBreakfast}
+                            onChange={(e) => setIncludeBreakfast(e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300"
+                          />
+                          Petit déjeuner {category === "package" ? `(+${breakfastPricePerDay.toFixed(2)} €/jour)` : "inclus"}
+                        </label>
+                      </>
+                    )}
                   </div>
                 </div>
+              )}
+              <div className="rounded-lg bg-white p-4 shadow sm:p-6">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium">Description du package / Détail de la facture</label>
+                  <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoGenerateDescription}
+                      onChange={(e) => setAutoGenerateDescription(e.target.checked)}
+                      className="h-3 w-3 rounded border-gray-300"
+                    />
+                    Générer automatiquement
+                  </label>
+                </div>
+                <textarea
+                  value={description}
+                  onChange={(e) => {
+                    setDescription(e.target.value)
+                    if (autoGenerateDescription) {
+                      setAutoGenerateDescription(false)
+                    }
+                  }}
+                  className="w-full px-3 py-2 border rounded-md text-slate-700 focus:ring-1 focus:ring-blue-500"
+                  rows={6}
+                  required
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Vous pouvez modifier ce texte librement. Toute modification manuelle désactivera la génération automatique.
+                </p>
+              </div>
 
                 <div className="rounded-lg bg-white p-4 shadow sm:p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -1333,7 +1528,17 @@ export default function EditInvoicePage({
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Prix unitaire HT hors chambre (€)</label>
+                      <label className="block text-sm font-medium mb-1">
+                        {category === "package"
+                          ? "Prix unitaire HT hors chambre (€)"
+                          : category === "visa_only"
+                          ? "Prix unitaire HT visa (€)"
+                          : category === "hotel_only"
+                          ? "Prix unitaire HT séjour/nuitée (€)"
+                          : category === "guide_only"
+                          ? "Prix unitaire HT guide / visite (€)"
+                          : "Prix unitaire HT (€)"}
+                      </label>
                       <input
                         type="number"
                         step="0.01"
@@ -1427,11 +1632,13 @@ export default function EditInvoicePage({
                         <span>{quantityValue}</span>
                       </div>
                       <div className="flex justify-between gap-4 text-sm text-slate-600">
-                        <span>Prix unitaire HT hors chambre</span>
+                        <span>
+                          {category === "package" ? "Prix unitaire HT hors chambre" : "Prix unitaire HT"}
+                        </span>
                         <span>{baseUnitPriceHT.toFixed(2)} €</span>
                       </div>
                       
-                      {roomSupplement > 0 && (
+                      {category === "package" && roomSupplement > 0 && (
                         <div className="flex justify-between gap-4 text-sm text-slate-600">
                           <span>Supplément chambre ({roomType})</span>
                           {discountedRoomSupplement !== roomSupplement ? (
@@ -1445,14 +1652,14 @@ export default function EditInvoicePage({
                         </div>
                       )}
                       
-                      {includeBreakfast && (
+                      {category === "package" && includeBreakfast && (
                         <div className="flex justify-between gap-4 text-sm text-slate-600">
                           <span>Petit déjeuner ({stayDays} jour{stayDays > 1 ? "s" : ""})</span>
                           <span>+{breakfastSupplement.toFixed(2)} €</span>
                         </div>
                       )}
                       
-                      {includeVisaKsaExtra && (
+                      {category === "package" && includeVisaKsaExtra && (
                         <div className="flex justify-between gap-4 text-sm text-slate-600">
                           <span>Supplément visa KSA</span>
                           {discountedVisaKsaVal !== visaKsaVal ? (
@@ -1471,7 +1678,9 @@ export default function EditInvoicePage({
                         <span>{packageUnitPriceHT.toFixed(2)} €</span>
                       </div>
                       <div className="flex justify-between gap-4 text-sm text-slate-600">
-                        <span>Total package HT</span>
+                        <span>
+                          {category === "package" ? "Total package HT" : "Sous-total prestation HT"}
+                        </span>
                         <span>{(quantityValue * packageUnitPriceHT).toFixed(2)} €</span>
                       </div>
                       
