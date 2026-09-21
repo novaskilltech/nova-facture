@@ -13,6 +13,8 @@ const statusOptions = [
   { value: "emitted", label: "Émise" },
   { value: "paid", label: "Payée" },
   { value: "late", label: "En retard" },
+  { value: "partial_credit_note", label: "Avoir partiel (automatique)" },
+  { value: "credited", label: "Annulée par avoir (automatique)" },
   { value: "cancelled", label: "Annulée" },
 ]
 

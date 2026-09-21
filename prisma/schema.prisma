@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider = "sqlite"
   url       = env("DATABASE_URL")
-  // // // // // // // // // // // // // // // // // // // // // // // // // // // // // directUrl = env("DIRECT_URL")
+  // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -45,6 +45,7 @@ model Entity {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   invoices       Invoice[]
+  creditNotes    CreditNote[]
 }
 
 model Client {
@@ -69,6 +70,7 @@ model Client {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   invoices          Invoice[]
+  creditNotes       CreditNote[]
 }
 
 model Invoice {
@@ -83,7 +85,7 @@ model Invoice {
   tvaRate           Float     @default(0)
   tvaAmount         Float     @default(0)
   totalTTC          Float
-  status            String    @default("draft")
+  status            String    @default("draft") // draft, emitted, paid, late, cancelled, partial_credit_note, credited
   paymentMethod     String
   paymentLink       String?
   acquisitionSource String?
@@ -98,4 +100,58 @@ model Invoice {
   emittedAt         DateTime?
   entity            Entity    @relation(fields: [entityId], references: [id])
   client            Client    @relation(fields: [clientId], references: [id])
+  creditNotes       CreditNote[]
 }
+
+model CreditNote {
+  id              String           @id @default(cuid())
+  number          String           @unique
+  invoiceId       String
+  clientId        String
+  entityId        String
+  date            DateTime
+  reason          String           // Motif (Annulation, Erreur, Geste commercial, etc.)
+  reasonDetails   String?          // Commentaire libre si Autre ou détails
+  type            String           @default("total") // total, partial
+  amountHT        Float
+  tvaRate         Float            @default(0)
+  tvaAmount       Float            @default(0)
+  totalTTC        Float
+  status          String           @default("pending") // pending (À rembourser), partially_refunded, refunded
+  notes           String?
+  createdById     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  invoice         Invoice          @relation(fields: [invoiceId], references: [id])
+  client          Client           @relation(fields: [clientId], references: [id])
+  entity          Entity           @relation(fields: [entityId], references: [id])
+  items           CreditNoteItem[]
+  refunds         Refund[]
+}
+
+model CreditNoteItem {
+  id              String     @id @default(cuid())
+  creditNoteId    String
+  description     String
+  quantity        Int        @default(1)
+  unitPriceHT     Float
+  taxRate         Float      @default(0)
+  totalHT         Float
+  totalTTC        Float
+  creditNote      CreditNote @relation(fields: [creditNoteId], references: [id], onDelete: Cascade)
+}
+
+model Refund {
+  id                   String     @id @default(cuid())
+  creditNoteId         String
+  amount               Float
+  refundDate           DateTime
+  paymentMethod        String     // virement, cb, especes, cheque, autre
+  transactionReference String?
+  notes                String?
+  createdById          String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  creditNote           CreditNote @relation(fields: [creditNoteId], references: [id], onDelete: Cascade)
+}
+

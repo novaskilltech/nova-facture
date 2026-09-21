@@ -28,6 +28,8 @@ export function StatusFilter({ currentStatus }: { currentStatus: string }) {
       <option value="emitted">Émises</option>
       <option value="paid">Payées</option>
       <option value="late">En retard</option>
+      <option value="partial_credit_note">Avoir partiel</option>
+      <option value="credited">Annulées par avoir</option>
       <option value="cancelled">Annulées</option>
     </select>
   )

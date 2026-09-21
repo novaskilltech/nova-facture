@@ -57,13 +57,35 @@ export default async function DashboardPage({
 
   const allInvoices = await prisma.invoice.findMany({
     where: whereInput,
-    include: { entity: true, client: true },
+    include: {
+      entity: true,
+      client: true,
+      creditNotes: {
+        include: { refunds: true },
+      },
+    },
     orderBy: orderByInput,
+  })
+
+  // Récupération de tous les avoirs pour le périmètre sélectionné
+  const creditNoteWhere: Prisma.CreditNoteWhereInput = {}
+  if (filterEntityId !== "all") {
+    creditNoteWhere.entityId = filterEntityId
+  }
+  const allCreditNotes = await prisma.creditNote.findMany({
+    where: creditNoteWhere,
+    include: { refunds: true },
   })
 
   const entityFilteredInvoices = filterEntityId === "all"
     ? allInvoices
     : allInvoices.filter((i) => i.entityId === filterEntityId)
+
+  const totalCreditNotesAmount = allCreditNotes.reduce((sum, cn) => sum + cn.totalTTC, 0)
+  const totalRefundedAmount = allCreditNotes.reduce((sum, cn) => {
+    return sum + cn.refunds.reduce((rSum, r) => rSum + r.amount, 0)
+  }, 0)
+  const remainingToRefundAmount = Math.max(0, totalCreditNotesAmount - totalRefundedAmount)
 
   const stats = {
     total: entityFilteredInvoices.length,
@@ -72,15 +94,25 @@ export default async function DashboardPage({
     paid: entityFilteredInvoices.filter((i) => i.status === "paid").length,
     late: entityFilteredInvoices.filter((i) => i.status === "late").length,
     cancelled: entityFilteredInvoices.filter((i) => i.status === "cancelled").length,
-    totalAmount: entityFilteredInvoices
+    credited: entityFilteredInvoices.filter((i) => i.status === "credited" || i.status === "partial_credit_note").length,
+    totalGrossAmount: entityFilteredInvoices
       .filter((i) => i.status !== "cancelled")
       .reduce((sum, i) => sum + i.totalTTC, 0),
+    totalCreditNotes: totalCreditNotesAmount,
+    netTurnover: Math.max(
+      0,
+      entityFilteredInvoices
+        .filter((i) => i.status !== "cancelled")
+        .reduce((sum, i) => sum + i.totalTTC, 0) - totalCreditNotesAmount
+    ),
     paidAmount: entityFilteredInvoices
       .filter((i) => i.status === "paid")
       .reduce((sum, i) => sum + i.totalTTC, 0),
     pendingAmount: entityFilteredInvoices
       .filter((i) => i.status === "emitted" || i.status === "late")
       .reduce((sum, i) => sum + i.totalTTC, 0),
+    totalRefunded: totalRefundedAmount,
+    remainingToRefund: remainingToRefundAmount,
   }
 
   const filteredInvoices = filterStatus === "all"
@@ -116,8 +148,8 @@ export default async function DashboardPage({
     return queryStr ? `/dashboard?${queryStr}` : "/dashboard"
   }
 
-  const paidPercentage = stats.totalAmount > 0 
-    ? (stats.paidAmount / stats.totalAmount) * 100 
+  const paidPercentage = stats.totalGrossAmount > 0 
+    ? (stats.paidAmount / stats.totalGrossAmount) * 100 
     : 0;
 
   return (
@@ -125,6 +157,7 @@ export default async function DashboardPage({
       <AppHeader
         links={[
           { href: "/invoices/new", label: "Nouvelle facture" },
+          { href: "/credit-notes", label: "Avoirs" },
           { href: "/clients", label: "Payeurs" },
           { href: "/entities", label: "Sociétés" },
         ]}
@@ -142,6 +175,12 @@ export default async function DashboardPage({
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center">
+            <Link
+              href="/credit-notes"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 shadow-premium transition-premium hover:bg-slate-50 cursor-pointer sm:py-2"
+            >
+              Gérer les avoirs
+            </Link>
             <a href="/api/export/csv" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 shadow-premium transition-premium hover:bg-slate-50 cursor-pointer sm:py-2">
               Exporter (CSV)
             </a>
@@ -198,46 +237,83 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        {/* Module Récapitulatif Financier Moderne */}
+        {/* Module Récapitulatif Financier Moderne (CA Brut, Avoirs, CA Net, Remboursements) */}
         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-premium mb-8 sm:p-8 sm:mb-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-slate-900">
-                Flux de Trésorerie {selectedEntity ? `— ${selectedEntity.commercialName}` : "Global"}
+                Flux Financier &amp; Trésorerie {selectedEntity ? `— ${selectedEntity.commercialName}` : "Global"}
               </h2>
               <p className="text-sm text-slate-400">
                 {selectedEntity
-                  ? `Visualisation des encaissements pour ${selectedEntity.commercialName}.`
-                  : "Visualisation des encaissements sur le volume de facturation non annulé."}
+                  ? `Synthèse financière et encaissements pour ${selectedEntity.commercialName}.`
+                  : "Synthèse financière prenant en compte le volume facturé, les avoirs déduits et les remboursements."}
               </p>
             </div>
             
-            <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6 lg:w-auto lg:flex lg:flex-wrap lg:items-center lg:gap-10">
+            <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6 lg:w-auto lg:flex lg:flex-wrap lg:items-center lg:gap-8">
               <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Montant Total Facturé</p>
-                <p className="break-words text-2xl font-black text-slate-900 sm:text-3xl">{stats.totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">CA Brut Facturé</p>
+                <p className="break-words text-xl font-black text-slate-900 sm:text-2xl">
+                  {stats.totalGrossAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                </p>
               </div>
+
               <div className="h-10 w-[1px] bg-slate-200 hidden md:block"></div>
+
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-rose-500 uppercase tracking-wider mb-1">Avoirs Émis</p>
+                <p className="break-words text-xl font-black text-rose-600 sm:text-2xl">
+                  -{stats.totalCreditNotes.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                </p>
+              </div>
+
+              <div className="h-10 w-[1px] bg-slate-200 hidden md:block"></div>
+
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">CA Net Rectifié</p>
+                <p className="break-words text-xl font-black text-indigo-700 sm:text-2xl">
+                  {stats.netTurnover.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                </p>
+              </div>
+
+              <div className="h-10 w-[1px] bg-slate-200 hidden md:block"></div>
+
               <div className="min-w-0">
                 <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">Total Encaissé</p>
-                <p className="break-words text-2xl font-black text-emerald-600 sm:text-3xl">{stats.paidAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
-              </div>
-              <div className="h-10 w-[1px] bg-slate-200 hidden md:block"></div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Reste à Percevoir</p>
-                <p className="break-words text-2xl font-black text-blue-600 sm:text-3xl">{stats.pendingAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+                <p className="break-words text-xl font-black text-emerald-600 sm:text-2xl">
+                  {stats.paidAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="mt-8">
+          {/* Deuxième ligne : Trésorerie des remboursements */}
+          {stats.totalCreditNotes > 0 && (
+            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-600">Suivi des décaissements / remboursements :</span>
+                <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded">
+                  Remboursé : {stats.totalRefunded.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                </span>
+                <span className="text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded">
+                  Reste à décaisser : {stats.remainingToRefund.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                </span>
+              </div>
+              <Link href="/credit-notes" className="font-bold text-blue-600 hover:underline">
+                Accéder au journal des avoirs ➔
+              </Link>
+            </div>
+          )}
+
+          <div className="mt-6">
             <div className="flex flex-col gap-1 text-xs font-bold mb-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-emerald-600">Progression des Encaissements : {paidPercentage.toFixed(1)}%</span>
-              <span className="text-slate-400">Objectif 100%</span>
+              <span className="text-slate-400">Reste à percevoir : {stats.pendingAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
             </div>
             <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex">
               <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${paidPercentage}%` }}></div>
-              <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: stats.totalAmount > 0 ? `${(stats.pendingAmount/stats.totalAmount)*100}%` : '0%' }}></div>
+              <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: stats.totalGrossAmount > 0 ? `${(stats.pendingAmount/stats.totalGrossAmount)*100}%` : '0%' }}></div>
             </div>
           </div>
         </div>
@@ -439,6 +515,8 @@ function StatusBadge({ status }: { status: string }) {
     paid: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
     late: "bg-rose-50 text-rose-700 border-rose-200/50",
     cancelled: "bg-slate-100 text-slate-600 border-slate-200/50",
+    partial_credit_note: "bg-amber-50 text-amber-700 border-amber-200/50",
+    credited: "bg-rose-50 text-rose-700 border-rose-200/50",
   }
   const labels: Record<string, string> = {
     draft: "Brouillon",
@@ -446,6 +524,8 @@ function StatusBadge({ status }: { status: string }) {
     paid: "Payée",
     late: "En retard",
     cancelled: "Annulée",
+    partial_credit_note: "Avoir partiel",
+    credited: "Annulée par avoir",
   }
   
   return (

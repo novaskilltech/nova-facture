@@ -48,9 +48,10 @@ export function BrandLogo({
 export function AppHeader({ links }: { links: AppHeaderLink[] }) {
   const navigationLinks = [
     { href: "/dashboard", label: "Tableau de bord" },
+    { href: "/credit-notes", label: "Avoirs" },
     { href: "/planning", label: "Planning" },
     { href: "/statistics/geo", label: "Statistiques" },
-    ...links.filter((l) => l.href !== "/statistics/geo")
+    ...links.filter((l) => l.href !== "/statistics/geo" && l.href !== "/credit-notes")
   ]
 
   return (

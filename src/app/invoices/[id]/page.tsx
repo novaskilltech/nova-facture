@@ -18,12 +18,23 @@ export default async function InvoiceDetailPage({
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: { entity: true, client: true },
+    include: {
+      entity: true,
+      client: true,
+      creditNotes: {
+        include: { refunds: true },
+        orderBy: { date: "desc" },
+      },
+    },
   })
 
   if (!invoice) {
     notFound()
   }
+
+  const alreadyCredited = (invoice.creditNotes || []).reduce((sum, cn) => sum + cn.totalTTC, 0)
+  const remainingCreditCeiling = Math.max(0, Math.round((invoice.totalTTC - alreadyCredited) * 100) / 100)
+  const canIssueCreditNote = invoice.status !== "draft" && invoice.status !== "cancelled" && remainingCreditCeiling > 0.01
 
   const formatPaymentMethod = (method: string) => {
     const methods: Record<string, string> = {
@@ -41,6 +52,8 @@ export default async function InvoiceDetailPage({
     paid: "Payée",
     late: "En retard",
     cancelled: "Annulée",
+    partial_credit_note: "Avoir partiel",
+    credited: "Annulée par avoir",
   }
 
   const statusColors: Record<string, string> = {
@@ -49,6 +62,8 @@ export default async function InvoiceDetailPage({
     paid: "bg-green-100 text-green-800",
     late: "bg-red-100 text-red-800",
     cancelled: "bg-gray-100 text-gray-800",
+    partial_credit_note: "bg-amber-100 text-amber-800",
+    credited: "bg-rose-100 text-rose-800",
   }
 
   const pdfInvoice = {
@@ -73,6 +88,9 @@ export default async function InvoiceDetailPage({
     <div className="min-h-screen bg-gray-50">
       <AppHeader
         links={[
+          { href: "/invoices/new", label: "Nouvelle facture" },
+          { href: "/credit-notes", label: "Avoirs" },
+          { href: "/clients", label: "Payeurs" },
           { href: "/entities", label: "Sociétés" },
         ]}
       />
@@ -85,7 +103,15 @@ export default async function InvoiceDetailPage({
               {invoice.entity.commercialName}
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:flex sm:shrink-0">
+          <div className="grid grid-cols-1 gap-3 sm:flex sm:shrink-0 sm:items-center">
+            {canIssueCreditNote && (
+              <Link
+                href={`/invoices/${invoice.id}/credit-note`}
+                className="w-full rounded-md bg-rose-600 px-4 py-2.5 text-center font-semibold text-white shadow-sm hover:bg-rose-700 sm:w-auto sm:py-2 transition-colors"
+              >
+                Créer un avoir
+              </Link>
+            )}
             <InvoicePDFDownloadButton
               invoice={pdfInvoice}
               fileName={`facture-${invoice.number}.pdf`}
@@ -213,15 +239,81 @@ export default async function InvoiceDetailPage({
                 <span>0.00 €</span>
               </div>
               <div className="flex justify-between gap-4 border-t pt-2 text-lg font-bold">
-                <span>Total à payer</span>
+                <span>Total initial TTC</span>
                 <span>{invoice.totalTTC.toFixed(2)} €</span>
               </div>
+              {alreadyCredited > 0 && (
+                <>
+                  <div className="flex justify-between gap-4 py-1 text-sm font-semibold text-rose-600">
+                    <span>Avoirs déduits</span>
+                    <span>-{alreadyCredited.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between gap-4 border-t border-rose-200 pt-1 text-base font-black text-slate-900">
+                    <span>Solde net restant</span>
+                    <span>{remainingCreditCeiling.toFixed(2)} €</span>
+                  </div>
+                </>
+              )}
               <p className="text-xs text-gray-500 mt-2 italic">
                 {invoice.entity.tvaMention}
               </p>
             </div>
           </div>
         </div>
+
+        {/* Section Avoirs Associés */}
+        {invoice.creditNotes && invoice.creditNotes.length > 0 && (
+          <div className="mb-6 rounded-lg bg-white p-4 shadow sm:p-6 border-l-4 border-rose-500">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Avoirs comptables émis</h3>
+                <p className="text-xs text-slate-500">
+                  Cette facture fait l&apos;objet de {invoice.creditNotes.length} avoir(s) comptable(s).
+                </p>
+              </div>
+              <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full">
+                Total crédité : {alreadyCredited.toFixed(2)} €
+              </span>
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              {invoice.creditNotes.map((cn) => {
+                const refunded = cn.refunds.reduce((sum, r) => sum + r.amount, 0)
+                const rest = Math.max(0, cn.totalTTC - refunded)
+                return (
+                  <div key={cn.id} className="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-rose-600">{cn.number}</span>
+                        <span className="text-xs text-slate-400">
+                          du {new Date(cn.date).toLocaleDateString("fr-FR")}
+                        </span>
+                        <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">
+                          {cn.reason}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Montant : <span className="font-bold text-slate-800">{cn.totalTTC.toFixed(2)} €</span> | 
+                        Remboursé : <span className="font-bold text-emerald-600">{refunded.toFixed(2)} €</span>
+                        {rest > 0 && (
+                          <span className="text-rose-600 font-bold ml-1">
+                            (Reste : {rest.toFixed(2)} €)
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/credit-notes/${cn.id}`}
+                      className="inline-flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors"
+                    >
+                      Consulter l&apos;avoir ➔
+                    </Link>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {invoice.paymentMethod === "virement" && (
           <div className="mb-6 rounded-lg bg-white p-4 shadow sm:p-6">
