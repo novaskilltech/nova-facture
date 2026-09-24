@@ -54,6 +54,7 @@ const departureAirports = [
   "Bordeaux",
   "Bruxelles",
   "Charleroi",
+  "Bâle-Mulhouse",
   "Barcelone",
   "Madrid",
   "Malaga",
