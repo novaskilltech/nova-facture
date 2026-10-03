@@ -44,15 +44,29 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fr_FR",
     siteName: appTitle,
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: `${appTitle} - Gestion de facturation`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: appTitle,
     description: appDescription,
+    images: ["/twitter-image"],
   },
   icons: {
-    icon: "/icon.png",
-    apple: "/apple-icon.png",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", type: "image/png" },
+    ],
     shortcut: "/icon.png",
   },
 }
