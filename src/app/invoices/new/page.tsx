@@ -1058,16 +1058,34 @@ function NewInvoiceForm() {
                       </select>
                     </div>
                   )}
-                  <div className="flex items-end pb-1.5">
-                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <div className="flex items-center gap-2.5 pb-1.5 flex-wrap">
+                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={showTravelers}
                         onChange={(e) => setShowTravelers(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300"
+                        className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                       />
                       Ajouter le nom des voyageurs
                     </label>
+                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5 shadow-sm">
+                      <span className="text-xs text-slate-500 font-medium">Nb :</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="99"
+                        value={quantity}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setQuantity(val)
+                          if (!showTravelers && parseInt(val, 10) > 0) {
+                            setShowTravelers(true)
+                          }
+                        }}
+                        className="w-12 px-1 py-0.5 text-xs border border-slate-300 rounded bg-white text-center font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                        title="Nombre de voyageurs / pèlerins (met à jour la quantité et le nombre de champs)"
+                      />
+                    </div>
                   </div>
                   {category === "package" && (
                     <div className="flex items-end pb-1.5">
@@ -1164,7 +1182,47 @@ function NewInvoiceForm() {
 
                 {showTravelers && (
                   <div className="mt-4 border-t pt-4">
-                    <h4 className="mb-2 text-sm font-semibold text-slate-900">Nom des voyageurs</h4>
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                      <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                        Nom des voyageurs
+                        <span className="text-xs font-normal text-slate-500">
+                          ({quantity} voyageur{parseInt(quantity, 10) > 1 ? "s" : ""})
+                        </span>
+                      </h4>
+                      <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
+                        <label className="text-xs font-medium text-slate-700">Nombre de pèlerins :</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="99"
+                          value={quantity}
+                          onChange={(e) => setQuantity(e.target.value)}
+                          className="w-14 px-1.5 py-0.5 text-xs border border-slate-300 rounded font-bold text-center bg-white text-slate-900 focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cur = parseInt(quantity, 10) || 1
+                            if (cur > 1) setQuantity((cur - 1).toString())
+                          }}
+                          className="w-6 h-6 flex items-center justify-center text-xs bg-white border border-slate-300 rounded hover:bg-slate-100 font-bold text-slate-700"
+                          title="Diminuer d'un voyageur"
+                        >
+                          -
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cur = parseInt(quantity, 10) || 1
+                            setQuantity((cur + 1).toString())
+                          }}
+                          className="w-6 h-6 flex items-center justify-center text-xs bg-white border border-slate-300 rounded hover:bg-slate-100 font-bold text-slate-700"
+                          title="Ajouter un voyageur"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {travelerNames.map((name, i) => (
                         <div key={i}>
@@ -1541,7 +1599,9 @@ function NewInvoiceForm() {
                 <h3 className="font-semibold mb-4">Montant et paiement</h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Quantité de produits</label>
+                    <label className="block text-sm font-medium mb-1">
+                      {category === "package" ? "Nombre de pèlerins (quantité)" : "Quantité de produits"}
+                    </label>
                     <input
                       type="number"
                       min="1"
