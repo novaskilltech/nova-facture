@@ -7,7 +7,7 @@ const FIRST_INVOICE_NUMBER = 500
 function getEntityCode(entity: { id: string; commercialName: string; legalName: string }) {
   const normalizedName = `${entity.commercialName} ${entity.legalName}`.toLowerCase()
 
-  if (entity.id === "entity-conciergerie" || normalizedName.includes("conciergerie")) {
+  if (entity.id === "entity-conciergerie" || entity.id === "entity-conciergerie-revolut" || normalizedName.includes("conciergerie")) {
     return "LC"
   }
 
@@ -53,9 +53,9 @@ export async function GET(request: Request) {
     }
 
     const entityCode = getEntityCode(entity)
+    // Recherche de toutes les factures portant ce code d'entité pour garantir la continuité comptable et éviter les doublons uniques
     const invoices = await prisma.invoice.findMany({
       where: {
-        entityId,
         number: {
           endsWith: `-${entityCode}`,
         },

@@ -13,14 +13,13 @@ export function InvoicePDFDownloadButton({
   fileName,
 }: InvoicePDFDownloadButtonProps) {
   const getLogoPath = (entityId?: string) => {
-    switch (entityId) {
-      case "entity-conciergerie":
-        return "/conciergerie-logo.jpg"
-      case "entity-horizon-services":
-        return "/horizon-services-logo.png"
-      default:
-        return "/horizon-solutions-logo.jpg"
+    if (entityId?.includes("conciergerie")) {
+      return "/conciergerie-logo.jpg"
     }
+    if (entityId?.includes("services")) {
+      return "/horizon-services-logo.png"
+    }
+    return "/horizon-solutions-logo.jpg"
   }
 
   const logoPath = getLogoPath(invoice.entity.id)

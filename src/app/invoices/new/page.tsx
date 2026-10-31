@@ -910,6 +910,10 @@ function NewInvoiceForm() {
                 >
                   <p className="font-medium">{e.commercialName}</p>
                   <p className="text-sm text-gray-500">{e.legalName} - {e.legalForm}</p>
+                  <div className="mt-2 text-xs text-slate-600 font-medium">
+                    <span className="text-slate-400">Banque : </span>
+                    <span className="font-semibold text-slate-800">{e.bankName}</span>
+                  </div>
                 </button>
               ))}
             </div>

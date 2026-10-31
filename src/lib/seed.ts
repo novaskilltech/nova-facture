@@ -19,15 +19,12 @@ async function main() {
     },
   })
 
+  // 1. La Conciergerie (Compte OKALI)
   await prisma.entity.upsert({
     where: { id: "entity-conciergerie" },
     update: {
-      logoPath: "/conciergerie-logo.jpg",
-    },
-    create: {
-      id: "entity-conciergerie",
       legalName: "LA CONCIERGERIE",
-      commercialName: "Omrayanair / La Conciergerie",
+      commercialName: "Omrayanair / La Conciergerie (OKALI)",
       legalForm: "SASU",
       siren: "980508238",
       rcs: "Compiègne",
@@ -42,9 +39,75 @@ async function main() {
       bankHolder: "LA CONCIERGERIE",
       paymentMethods: "virement,especes",
       logoPath: "/conciergerie-logo.jpg",
+      isActive: true,
+    },
+    create: {
+      id: "entity-conciergerie",
+      legalName: "LA CONCIERGERIE",
+      commercialName: "Omrayanair / La Conciergerie (OKALI)",
+      legalForm: "SASU",
+      siren: "980508238",
+      rcs: "Compiègne",
+      capital: "500",
+      address: "98 Avenue Claude Péroche",
+      postalCode: "60180",
+      city: "Nogent-sur-Oise",
+      tvaMention: "TVA non applicable - article 293 B du CGI",
+      bankName: "OKALI",
+      bankIban: "FR76 3000 0000 0000 0000 0000 000",
+      bankBic: "SFPEFRP2",
+      bankHolder: "LA CONCIERGERIE",
+      paymentMethods: "virement,especes",
+      logoPath: "/conciergerie-logo.jpg",
+      isActive: true,
     },
   })
 
+  // 2. La Conciergerie (Compte Revolut Bank UAB)
+  await prisma.entity.upsert({
+    where: { id: "entity-conciergerie-revolut" },
+    update: {
+      legalName: "LA CONCIERGERIE",
+      commercialName: "Omrayanair / La Conciergerie (Revolut)",
+      legalForm: "SASU",
+      siren: "980508238",
+      rcs: "Compiègne",
+      capital: "500",
+      address: "98 Avenue Claude Péroche",
+      postalCode: "60180",
+      city: "Nogent-sur-Oise",
+      tvaMention: "TVA non applicable - article 293 B du CGI",
+      bankName: "Revolut Bank UAB",
+      bankIban: "FR76 2823 3000 0101 1682 6546 184",
+      bankBic: "REVOFRP2",
+      bankHolder: "LA CONCIERGERIE",
+      paymentMethods: "virement,especes,cb-revolut",
+      logoPath: "/conciergerie-logo.jpg",
+      isActive: true,
+    },
+    create: {
+      id: "entity-conciergerie-revolut",
+      legalName: "LA CONCIERGERIE",
+      commercialName: "Omrayanair / La Conciergerie (Revolut)",
+      legalForm: "SASU",
+      siren: "980508238",
+      rcs: "Compiègne",
+      capital: "500",
+      address: "98 Avenue Claude Péroche",
+      postalCode: "60180",
+      city: "Nogent-sur-Oise",
+      tvaMention: "TVA non applicable - article 293 B du CGI",
+      bankName: "Revolut Bank UAB",
+      bankIban: "FR76 2823 3000 0101 1682 6546 184",
+      bankBic: "REVOFRP2",
+      bankHolder: "LA CONCIERGERIE",
+      paymentMethods: "virement,especes,cb-revolut",
+      logoPath: "/conciergerie-logo.jpg",
+      isActive: true,
+    },
+  })
+
+  // 3. Horizon Solutions
   await prisma.entity.upsert({
     where: { id: "entity-horizon" },
     update: {
@@ -68,9 +131,11 @@ async function main() {
       bankHolder: "SALAH EDINE AHMED LAMKHANNET",
       paymentMethods: "virement,especes,cb-stripe,cb-revolut",
       logoPath: "/horizon-solutions-logo.jpg",
+      isActive: true,
     },
   })
 
+  // 4. Horizon Services
   await prisma.entity.upsert({
     where: { id: "entity-horizon-services" },
     update: {
@@ -94,6 +159,7 @@ async function main() {
       bankHolder: "YASMINE LAMKHANNET",
       paymentMethods: "virement,especes,cb-stripe,cb-revolut",
       logoPath: "/horizon-services-logo.png",
+      isActive: true,
     },
   })
 
