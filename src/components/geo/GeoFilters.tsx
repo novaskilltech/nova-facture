@@ -95,6 +95,10 @@ export function GeoFilters({ filters, onChange, entities }: GeoFiltersProps) {
             <option value="Madrid">Madrid</option>
             <option value="Malaga">Malaga</option>
             <option value="Cologne">Cologne</option>
+            <option value="Tanger">Tanger</option>
+            <option value="Marrakech">Marrakech</option>
+            <option value="Casablanca">Casablanca</option>
+            <option value="Tétouan">Tétouan</option>
           </select>
         </div>
 

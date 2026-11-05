@@ -59,6 +59,10 @@ const departureAirports = [
   "Madrid",
   "Malaga",
   "Cologne",
+  "Tanger",
+  "Marrakech",
+  "Casablanca",
+  "Tétouan",
   "Autre",
 ]
 const breakfastPricePerDay = 10
@@ -504,6 +508,7 @@ function NewInvoiceForm() {
   const [periodStart, setPeriodStart] = useState("")
   const [periodEnd, setPeriodEnd] = useState("")
   const [departureAirport, setDepartureAirport] = useState("Paris")
+  const [customAirport, setCustomAirport] = useState("")
   const [includeVisa, setIncludeVisa] = useState(false)
   const [includeVisaKsaExtra, setIncludeVisaKsaExtra] = useState(false)
   const [visaKsaAmount, setVisaKsaAmount] = useState("")
@@ -581,6 +586,9 @@ function NewInvoiceForm() {
         const parsed = parseInvoiceDescription(invoiceData.description || "")
         setCategory(parsed.category)
         setDepartureAirport(parsed.departureAirport)
+        if (!departureAirports.filter((a) => a !== "Autre").includes(parsed.departureAirport)) {
+          setCustomAirport(parsed.departureAirport === "Autre" ? "" : parsed.departureAirport)
+        }
         setIncludeVisa(parsed.includeVisa)
         setIncludeVisaKsaExtra(parsed.includeVisaKsaExtra)
         setVisaKsaAmount(parsed.visaKsaAmount)
@@ -1046,11 +1054,22 @@ function NewInvoiceForm() {
                     />
                   </div>
                   {category === "package" && (
-                    <div>
+                    <div className="space-y-1.5">
                       <label className="block text-sm font-medium mb-1">Aéroport de départ</label>
                       <select
-                        value={departureAirport}
-                        onChange={(e) => setDepartureAirport(e.target.value)}
+                        value={
+                          departureAirports.filter((a) => a !== "Autre").includes(departureAirport)
+                            ? departureAirport
+                            : "Autre"
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value
+                          if (val === "Autre") {
+                            setDepartureAirport(customAirport.trim() ? customAirport.trim() : "Autre")
+                          } else {
+                            setDepartureAirport(val)
+                          }
+                        }}
                         className="w-full px-3 py-2 border rounded-md"
                         required
                       >
@@ -1060,6 +1079,22 @@ function NewInvoiceForm() {
                           </option>
                         ))}
                       </select>
+                      {(!departureAirports.filter((a) => a !== "Autre").includes(departureAirport)) && (
+                        <div className="pt-1">
+                          <input
+                            type="text"
+                            placeholder="Saisissez le nom de l'aéroport ou ville (ex: Fès, Rabat, Nantes...)"
+                            value={departureAirport === "Autre" ? customAirport : departureAirport}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setCustomAirport(val)
+                              setDepartureAirport(val.trim() ? val : "Autre")
+                            }}
+                            className="w-full px-3 py-2 border border-amber-300 bg-amber-50/30 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            required
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="flex items-center gap-2.5 pb-1.5 flex-wrap">
@@ -1818,6 +1853,15 @@ function NewInvoiceForm() {
               </div>
             </>
           )}
+
+                    <div className="rounded-xl border-2 border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900 leading-relaxed shadow-sm">
+            <p className="font-bold text-amber-950 mb-1 flex items-center gap-1.5">
+              <span>⚠️</span> Rappel important avant validation :
+            </p>
+            <p>
+              Veuillez bien vérifier les <strong>dates de séjour, l&apos;aéroport de départ</strong> ainsi que les <strong>prestations incluses</strong>. Une fois le paiement validé, seuls les éléments inscrits sur la facture font foi et sont pris en compte pour le séjour. Toute erreur doit être signalée avant règlement.
+            </p>
+          </div>
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:gap-4">
             <Link

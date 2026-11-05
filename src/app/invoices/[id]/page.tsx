@@ -349,6 +349,23 @@ export default async function InvoiceDetailPage({
           </div>
         )}
 
+                {/* Avertissement de vérification avant règlement */}
+        <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50/80 p-4 shadow-sm sm:p-5">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl leading-none">⚠️</span>
+            <div>
+              <h4 className="text-sm font-bold text-amber-950 uppercase tracking-wide">
+                Vérification obligatoire avant paiement
+              </h4>
+              <p className="mt-1.5 text-xs leading-relaxed text-amber-900">
+                Merci de <strong>bien vérifier les dates de séjour, l&apos;aéroport de départ et l&apos;ensemble des prestations incluses dans le forfait</strong> avant d&apos;effectuer votre règlement.
+                Une fois le paiement validé, <strong>seuls les éléments figurant sur cette facture font foi et sont pris en compte</strong> pour l&apos;organisation et l&apos;exécution du séjour.
+                En cas d&apos;erreur ou d&apos;omission de notre part, <strong>veuillez impérativement nous le signaler avant le paiement</strong> afin que nous puissions modifier et vous rééditer la facture.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="rounded-lg bg-white p-4 text-xs leading-relaxed text-gray-600 shadow sm:p-6">
           <p>
             TVA non applicable, conformément à l&apos;article 293 B du Code général des impôts (CGI), l&apos;entreprise bénéficiant du régime de la franchise en base de TVA.

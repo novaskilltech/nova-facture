@@ -184,6 +184,25 @@ const styles = StyleSheet.create({
     color: "#4b5563",
     marginTop: 10,
   },
+  verificationBox: {
+    marginTop: 10,
+    marginBottom: 6,
+    padding: 8,
+    backgroundColor: "#fffbeb",
+    borderRadius: 4,
+    border: "1px solid #fcd34d",
+  },
+  verificationTitle: {
+    fontWeight: "bold",
+    fontSize: 8,
+    color: "#b45309",
+    marginBottom: 3,
+  },
+  verificationText: {
+    fontSize: 7.2,
+    color: "#92400e",
+    lineHeight: 1.35,
+  },
   periodInfo: {
     fontSize: 9,
     backgroundColor: "#fef3c7",
@@ -423,6 +442,13 @@ export function InvoicePDF({ invoice, logoSrc }: InvoicePDFProps) {
             </Text>
           </View>
         )}
+
+        <View style={styles.verificationBox}>
+          <Text style={styles.verificationTitle}>IMPORTANT — VÉRIFICATION OBLIGATOIRE AVANT RÈGLEMENT</Text>
+          <Text style={styles.verificationText}>
+            Veuillez vérifier scrupuleusement l&apos;ensemble des éléments de cette facture (dates du séjour, aéroport de départ, formule et prestations incluses) avant d&apos;effectuer votre paiement. Une fois le paiement validé, seuls les éléments mentionnés sur cette facture font foi et sont pris en compte pour l&apos;exécution du séjour. En cas d&apos;erreur ou d&apos;omission de notre part, merci de nous le signaler impérativement avant le paiement afin que nous puissions rectifier et vous rééditer la facture.
+          </Text>
+        </View>
 
         <View style={styles.footer}>
           <Text>
